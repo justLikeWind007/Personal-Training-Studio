@@ -39,3 +39,14 @@ Optional env:
 - `BASE_URL` (default `http://127.0.0.1:8080`)
 - `TENANT_ID` (default `tenant-demo`)
 - `STORE_ID` (default `store-001`)
+
+## 6. MySQL Profile Smoke
+
+```bash
+./scripts/mysql_smoke.sh
+```
+
+脚本会自动：
+- 启动 `docker compose` 的 MySQL
+- 使用 `SPRING_PROFILES_ACTIVE=mysql` 启动服务
+- 检查 `health` / `OpenAPI` / `settings` / `smoke_api.sh`
