@@ -6,5 +6,6 @@ public record StoreSettings(String tenantId,
                             String storeId,
                             String storeName,
                             String businessHoursJson,
+                            String status,
                             OffsetDateTime updatedAt) {
 }

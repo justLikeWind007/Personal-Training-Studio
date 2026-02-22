@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -33,6 +34,7 @@ public class MysqlStoreSettingsRepository implements StoreSettingsRepository {
             po.setStoreKey(storeId);
             po.setStoreName(storeName);
             po.setBusinessHoursJson(businessHoursJson);
+            po.setStatus("ACTIVE");
             po.setCreatedAt(updatedAt);
             po.setUpdatedAt(updatedAt);
             mapper.insert(po);
@@ -43,12 +45,24 @@ public class MysqlStoreSettingsRepository implements StoreSettingsRepository {
         return toDomain(mapper.get(tenantId, storeId));
     }
 
+    @Override
+    public List<StoreSettings> listByTenant(String tenantId) {
+        return mapper.listByTenant(tenantId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public Optional<StoreSettings> updateStatus(String tenantId, String storeId, String status, OffsetDateTime updatedAt) {
+        mapper.updateStatus(tenantId, storeId, status, updatedAt);
+        return Optional.ofNullable(mapper.get(tenantId, storeId)).map(this::toDomain);
+    }
+
     private StoreSettings toDomain(MysqlStoreSettingsPo po) {
         return new StoreSettings(
                 po.getTenantKey(),
                 po.getStoreKey(),
                 po.getStoreName(),
                 po.getBusinessHoursJson(),
+                po.getStatus(),
                 po.getUpdatedAt()
         );
     }

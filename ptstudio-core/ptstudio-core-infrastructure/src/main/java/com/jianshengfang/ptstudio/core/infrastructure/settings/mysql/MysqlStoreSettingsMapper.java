@@ -8,13 +8,14 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Mapper
 public interface MysqlStoreSettingsMapper {
 
     @Select("""
             SELECT id, tenant_key, store_key, store_name,
-                   CAST(business_hours_json AS CHAR) AS businessHoursJson,
+                   CAST(business_hours_json AS CHAR) AS businessHoursJson, status,
                    created_at, updated_at
             FROM t_app_store_settings
             WHERE tenant_key = #{tenantKey} AND store_key = #{storeKey}
@@ -23,8 +24,8 @@ public interface MysqlStoreSettingsMapper {
     MysqlStoreSettingsPo get(@Param("tenantKey") String tenantKey, @Param("storeKey") String storeKey);
 
     @Insert("""
-            INSERT INTO t_app_store_settings(tenant_key, store_key, store_name, business_hours_json, created_at, updated_at)
-            VALUES(#{tenantKey}, #{storeKey}, #{storeName}, #{businessHoursJson}, #{createdAt}, #{updatedAt})
+            INSERT INTO t_app_store_settings(tenant_key, store_key, store_name, business_hours_json, status, created_at, updated_at)
+            VALUES(#{tenantKey}, #{storeKey}, #{storeName}, #{businessHoursJson}, #{status}, #{createdAt}, #{updatedAt})
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(MysqlStoreSettingsPo po);
@@ -39,4 +40,24 @@ public interface MysqlStoreSettingsMapper {
                @Param("storeName") String storeName,
                @Param("businessHoursJson") String businessHoursJson,
                @Param("updatedAt") OffsetDateTime updatedAt);
+
+    @Select("""
+            SELECT id, tenant_key, store_key, store_name,
+                   CAST(business_hours_json AS CHAR) AS businessHoursJson, status,
+                   created_at, updated_at
+            FROM t_app_store_settings
+            WHERE tenant_key = #{tenantKey}
+            ORDER BY store_key
+            """)
+    List<MysqlStoreSettingsPo> listByTenant(@Param("tenantKey") String tenantKey);
+
+    @Update("""
+            UPDATE t_app_store_settings
+            SET status = #{status}, updated_at = #{updatedAt}
+            WHERE tenant_key = #{tenantKey} AND store_key = #{storeKey}
+            """)
+    int updateStatus(@Param("tenantKey") String tenantKey,
+                     @Param("storeKey") String storeKey,
+                     @Param("status") String status,
+                     @Param("updatedAt") OffsetDateTime updatedAt);
 }

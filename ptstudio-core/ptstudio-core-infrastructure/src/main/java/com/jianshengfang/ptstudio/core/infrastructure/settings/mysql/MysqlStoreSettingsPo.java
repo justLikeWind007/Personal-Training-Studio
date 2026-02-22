@@ -9,6 +9,7 @@ public class MysqlStoreSettingsPo {
     private String storeKey;
     private String storeName;
     private String businessHoursJson;
+    private String status;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -22,6 +23,8 @@ public class MysqlStoreSettingsPo {
     public void setStoreName(String storeName) { this.storeName = storeName; }
     public String getBusinessHoursJson() { return businessHoursJson; }
     public void setBusinessHoursJson(String businessHoursJson) { this.businessHoursJson = businessHoursJson; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
