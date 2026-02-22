@@ -57,4 +57,18 @@ public interface MysqlReportMapper {
             WHERE tenant_id = #{tenantId} AND store_id = #{storeId}
             """)
     BigDecimal sumCommissionAmount(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
+
+    @Select("""
+            SELECT COUNT(1)
+            FROM t_checkin_record
+            WHERE tenant_id = #{tenantId} AND store_id = #{storeId}
+            """)
+    Long countCheckins(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
+
+    @Select("""
+            SELECT COUNT(1)
+            FROM t_lesson_consumption
+            WHERE tenant_id = #{tenantId} AND store_id = #{storeId} AND status = 'SUCCESS'
+            """)
+    Long countSuccessConsumptions(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
 }

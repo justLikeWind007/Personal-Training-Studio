@@ -5,17 +5,16 @@ import com.jianshengfang.ptstudio.core.app.schedule.ScheduleRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
-import java.util.Comparator;
 import java.util.List;
 
 @Service
 public class AttendanceService {
 
-    private final InMemoryAttendanceStore attendanceStore;
+    private final AttendanceRepository attendanceRepository;
     private final ScheduleRepository scheduleRepository;
 
-    public AttendanceService(InMemoryAttendanceStore attendanceStore, ScheduleRepository scheduleRepository) {
-        this.attendanceStore = attendanceStore;
+    public AttendanceService(AttendanceRepository attendanceRepository, ScheduleRepository scheduleRepository) {
+        this.attendanceRepository = attendanceRepository;
         this.scheduleRepository = scheduleRepository;
     }
 
@@ -23,38 +22,25 @@ public class AttendanceService {
         InMemoryScheduleStore.ReservationData reservation = getBookedReservation(
                 command.reservationId(), command.tenantId(), command.storeId());
 
-        boolean exists = attendanceStore.checkinById().values().stream()
-                .anyMatch(checkin -> checkin.reservationId().equals(command.reservationId())
-                        && checkin.tenantId().equals(command.tenantId())
-                        && checkin.storeId().equals(command.storeId())
-                        && checkin.status().equals("CHECKED_IN"));
+        boolean exists = attendanceRepository.existsCheckedInReservation(
+                command.tenantId(), command.storeId(), command.reservationId());
         if (exists) {
             throw new IllegalArgumentException("该预约已签到");
         }
 
-        long id = attendanceStore.nextCheckinId();
-        OffsetDateTime now = OffsetDateTime.now();
-        InMemoryAttendanceStore.CheckinData checkin = new InMemoryAttendanceStore.CheckinData(
-                id,
-                reservation.id(),
-                reservation.memberId(),
+        return attendanceRepository.createCheckin(
                 command.tenantId(),
                 command.storeId(),
+                reservation.id(),
+                reservation.memberId(),
                 command.checkinChannel(),
                 command.operatorUserId(),
-                "CHECKED_IN",
-                now,
-                now
+                OffsetDateTime.now()
         );
-        attendanceStore.checkinById().put(id, checkin);
-        return checkin;
     }
 
     public List<InMemoryAttendanceStore.CheckinData> listCheckins(String tenantId, String storeId) {
-        return attendanceStore.checkinById().values().stream()
-                .filter(checkin -> checkin.tenantId().equals(tenantId) && checkin.storeId().equals(storeId))
-                .sorted(Comparator.comparing(InMemoryAttendanceStore.CheckinData::id))
-                .toList();
+        return attendanceRepository.listCheckins(tenantId, storeId);
     }
 
     public InMemoryAttendanceStore.ConsumptionData consume(ConsumeCommand command) {
@@ -64,70 +50,39 @@ public class AttendanceService {
         InMemoryScheduleStore.ReservationData reservation = getBookedReservation(
                 command.reservationId(), command.tenantId(), command.storeId());
 
-        Long existingConsumptionId = attendanceStore.consumptionIdByIdemKey().get(command.idemKey());
-        if (existingConsumptionId != null) {
-            InMemoryAttendanceStore.ConsumptionData existing = attendanceStore.consumptionById().get(existingConsumptionId);
-            if (existing != null) {
-                return existing;
-            }
+        var existing = attendanceRepository.getConsumptionByIdemKey(
+                command.tenantId(), command.storeId(), command.idemKey());
+        if (existing.isPresent()) {
+            return existing.get();
         }
 
-        long id = attendanceStore.nextConsumptionId();
-        OffsetDateTime now = OffsetDateTime.now();
-        InMemoryAttendanceStore.ConsumptionData consumption = new InMemoryAttendanceStore.ConsumptionData(
-                id,
+        return attendanceRepository.createConsumption(
+                command.tenantId(),
+                command.storeId(),
                 reservation.id(),
                 reservation.memberId(),
                 command.sessionsDelta(),
-                command.tenantId(),
-                command.storeId(),
                 command.idemKey(),
                 command.operatorUserId(),
-                "CONSUMED",
-                now,
-                now,
-                now
+                OffsetDateTime.now()
         );
-        attendanceStore.consumptionById().put(id, consumption);
-        attendanceStore.consumptionIdByIdemKey().put(command.idemKey(), id);
-        return consumption;
     }
 
     public List<InMemoryAttendanceStore.ConsumptionData> listConsumptions(String tenantId, String storeId) {
-        return attendanceStore.consumptionById().values().stream()
-                .filter(consumption -> consumption.tenantId().equals(tenantId) && consumption.storeId().equals(storeId))
-                .sorted(Comparator.comparing(InMemoryAttendanceStore.ConsumptionData::id))
-                .toList();
+        return attendanceRepository.listConsumptions(tenantId, storeId);
     }
 
     public InMemoryAttendanceStore.ConsumptionData reverse(Long consumptionId,
                                                            String tenantId,
                                                            String storeId,
                                                            Long operatorUserId) {
-        InMemoryAttendanceStore.ConsumptionData existing = attendanceStore.consumptionById().get(consumptionId);
-        if (existing == null || !existing.tenantId().equals(tenantId) || !existing.storeId().equals(storeId)) {
-            throw new IllegalArgumentException("课消记录不存在");
-        }
+        InMemoryAttendanceStore.ConsumptionData existing = attendanceRepository.getConsumption(consumptionId, tenantId, storeId)
+                .orElseThrow(() -> new IllegalArgumentException("课消记录不存在"));
         if (!existing.status().equals("CONSUMED")) {
             throw new IllegalArgumentException("当前状态不可冲正");
         }
-
-        InMemoryAttendanceStore.ConsumptionData reversed = new InMemoryAttendanceStore.ConsumptionData(
-                existing.id(),
-                existing.reservationId(),
-                existing.memberId(),
-                existing.sessionsDelta(),
-                existing.tenantId(),
-                existing.storeId(),
-                existing.idemKey(),
-                operatorUserId,
-                "REVERSED",
-                existing.consumeTime(),
-                existing.createdAt(),
-                OffsetDateTime.now()
-        );
-        attendanceStore.consumptionById().put(existing.id(), reversed);
-        return reversed;
+        return attendanceRepository.updateConsumptionStatus(
+                existing.id(), tenantId, storeId, "REVERSED", operatorUserId, OffsetDateTime.now());
     }
 
     private InMemoryScheduleStore.ReservationData getBookedReservation(Long reservationId,

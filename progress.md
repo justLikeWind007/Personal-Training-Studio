@@ -137,7 +137,7 @@
 - [x] MySQL + Flyway 本地环境（`docker-compose.yml` + profile）
 - [x] 核心模块仓储接口化（CRM/排班预约/财务/提成/报表）
 - [x] mysql profile 下对应 MyBatis 持久化实现
-- [ ] 签到与课消持久化（当前仍为内存）
+- [x] 签到与课消持久化（已完成仓储接口化与MySQL实现）
 - [ ] RocketMQ 预约事件（未开始）
 - [ ] Redis 锁并发控制（未开始）
 

@@ -1,6 +1,5 @@
 package com.jianshengfang.ptstudio.core.infrastructure.report.mysql;
 
-import com.jianshengfang.ptstudio.core.app.attendance.InMemoryAttendanceStore;
 import com.jianshengfang.ptstudio.core.app.report.ReportReadRepository;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
@@ -12,11 +11,8 @@ import java.math.BigDecimal;
 public class MysqlReportReadRepository implements ReportReadRepository {
 
     private final MysqlReportMapper mapper;
-    private final InMemoryAttendanceStore attendanceStore;
-
-    public MysqlReportReadRepository(MysqlReportMapper mapper, InMemoryAttendanceStore attendanceStore) {
+    public MysqlReportReadRepository(MysqlReportMapper mapper) {
         this.mapper = mapper;
-        this.attendanceStore = attendanceStore;
     }
 
     @Override
@@ -39,17 +35,14 @@ public class MysqlReportReadRepository implements ReportReadRepository {
 
     @Override
     public long countCheckins(String tenantId, String storeId) {
-        return attendanceStore.checkinById().values().stream()
-                .filter(c -> c.tenantId().equals(tenantId) && c.storeId().equals(storeId))
-                .count();
+        Long count = mapper.countCheckins(toLong(tenantId), toLong(storeId));
+        return count == null ? 0L : count;
     }
 
     @Override
     public long countConsumedRecords(String tenantId, String storeId) {
-        return attendanceStore.consumptionById().values().stream()
-                .filter(c -> c.tenantId().equals(tenantId) && c.storeId().equals(storeId))
-                .filter(c -> "CONSUMED".equals(c.status()))
-                .count();
+        Long count = mapper.countSuccessConsumptions(toLong(tenantId), toLong(storeId));
+        return count == null ? 0L : count;
     }
 
     @Override
