@@ -27,3 +27,15 @@ When `mysql` profile is active, Flyway runs `classpath:db/migration/V*.sql` at s
 ## 4. Test profile
 
 `mvn test` uses `test` profile by default and keeps Flyway disabled to ensure fast and stable CI.
+
+## 5. API smoke script
+
+```bash
+./scripts/smoke_api.sh
+```
+
+Optional env:
+
+- `BASE_URL` (default `http://127.0.0.1:8080`)
+- `TENANT_ID` (default `tenant-demo`)
+- `STORE_ID` (default `store-001`)
