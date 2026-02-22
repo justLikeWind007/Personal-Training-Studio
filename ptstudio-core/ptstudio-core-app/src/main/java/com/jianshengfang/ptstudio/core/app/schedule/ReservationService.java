@@ -1,6 +1,7 @@
 package com.jianshengfang.ptstudio.core.app.schedule;
 
 import com.jianshengfang.ptstudio.core.app.crm.MemberService;
+import com.jianshengfang.ptstudio.core.app.schedule.event.ReservationEventPublisher;
 import com.jianshengfang.ptstudio.core.app.schedule.lock.ReservationLockManager;
 import org.springframework.stereotype.Service;
 
@@ -17,13 +18,16 @@ public class ReservationService {
     private final ScheduleRepository scheduleRepository;
     private final MemberService memberService;
     private final ReservationLockManager lockManager;
+    private final ReservationEventPublisher reservationEventPublisher;
 
     public ReservationService(ScheduleRepository scheduleRepository,
                               MemberService memberService,
-                              ReservationLockManager lockManager) {
+                              ReservationLockManager lockManager,
+                              ReservationEventPublisher reservationEventPublisher) {
         this.scheduleRepository = scheduleRepository;
         this.memberService = memberService;
         this.lockManager = lockManager;
+        this.reservationEventPublisher = reservationEventPublisher;
     }
 
     public List<InMemoryScheduleStore.SlotData> listAvailableSlots(String tenantId,
@@ -70,6 +74,7 @@ public class ReservationService {
             );
             scheduleRepository.updateSlotBookedCount(
                     slot.id(), slot.tenantId(), slot.storeId(), slot.bookedCount() + 1, OffsetDateTime.now());
+            reservationEventPublisher.publishCreated(reservation);
             return reservation;
         } finally {
             lockManager.unlock(lockToken);
@@ -110,6 +115,7 @@ public class ReservationService {
         if (slot != null && slot.bookedCount() > 0) {
             scheduleRepository.updateSlotBookedCount(slot.id(), slot.tenantId(), slot.storeId(), slot.bookedCount() - 1, now);
         }
+        reservationEventPublisher.publishCanceled(canceled);
         return canceled;
     }
 
