@@ -85,6 +85,11 @@ public class MysqlFinanceRepository implements FinanceRepository {
     }
 
     @Override
+    public List<InMemoryFinanceStore.PaymentData> listPayments(String tenantId, String storeId) {
+        return mapper.listPayments(toLong(tenantId), toLong(storeId)).stream().map(this::toPayment).toList();
+    }
+
+    @Override
     public Optional<InMemoryFinanceStore.PaymentData> getPaymentByChannelTradeNo(String tenantId,
                                                                                   String storeId,
                                                                                   String channelTradeNo) {
@@ -138,6 +143,11 @@ public class MysqlFinanceRepository implements FinanceRepository {
     @Override
     public Optional<InMemoryFinanceStore.RefundData> getRefund(Long refundId, String tenantId, String storeId) {
         return Optional.ofNullable(mapper.getRefund(refundId, toLong(tenantId), toLong(storeId))).map(this::toRefund);
+    }
+
+    @Override
+    public List<InMemoryFinanceStore.RefundData> listRefunds(String tenantId, String storeId) {
+        return mapper.listRefunds(toLong(tenantId), toLong(storeId)).stream().map(this::toRefund).toList();
     }
 
     @Override

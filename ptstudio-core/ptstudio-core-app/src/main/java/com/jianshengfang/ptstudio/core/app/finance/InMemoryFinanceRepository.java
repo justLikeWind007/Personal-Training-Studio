@@ -86,6 +86,14 @@ public class InMemoryFinanceRepository implements FinanceRepository {
     }
 
     @Override
+    public List<InMemoryFinanceStore.PaymentData> listPayments(String tenantId, String storeId) {
+        return store.paymentById().values().stream()
+                .filter(payment -> payment.tenantId().equals(tenantId) && payment.storeId().equals(storeId))
+                .sorted(Comparator.comparing(InMemoryFinanceStore.PaymentData::id))
+                .toList();
+    }
+
+    @Override
     public Optional<InMemoryFinanceStore.PaymentData> getPaymentByChannelTradeNo(String tenantId,
                                                                                   String storeId,
                                                                                   String channelTradeNo) {
@@ -163,6 +171,14 @@ public class InMemoryFinanceRepository implements FinanceRepository {
             return Optional.empty();
         }
         return Optional.of(refund);
+    }
+
+    @Override
+    public List<InMemoryFinanceStore.RefundData> listRefunds(String tenantId, String storeId) {
+        return store.refundById().values().stream()
+                .filter(refund -> refund.tenantId().equals(tenantId) && refund.storeId().equals(storeId))
+                .sorted(Comparator.comparing(InMemoryFinanceStore.RefundData::id))
+                .toList();
     }
 
     @Override

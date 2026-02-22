@@ -42,6 +42,8 @@ public interface FinanceRepository {
                                                       BigDecimal amount,
                                                       OffsetDateTime createdAt);
 
+    List<InMemoryFinanceStore.PaymentData> listPayments(String tenantId, String storeId);
+
     Optional<InMemoryFinanceStore.PaymentData> getPaymentByChannelTradeNo(String tenantId,
                                                                           String storeId,
                                                                           String channelTradeNo);
@@ -67,6 +69,8 @@ public interface FinanceRepository {
                                                  OffsetDateTime createdAt);
 
     Optional<InMemoryFinanceStore.RefundData> getRefund(Long refundId, String tenantId, String storeId);
+
+    List<InMemoryFinanceStore.RefundData> listRefunds(String tenantId, String storeId);
 
     InMemoryFinanceStore.RefundData updateRefundDecision(Long refundId,
                                                          String tenantId,

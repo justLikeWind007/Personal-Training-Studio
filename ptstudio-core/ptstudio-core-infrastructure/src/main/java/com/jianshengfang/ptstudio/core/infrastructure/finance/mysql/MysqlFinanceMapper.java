@@ -86,6 +86,15 @@ public interface MysqlFinanceMapper {
                                                      @Param("tenantId") Long tenantId,
                                                      @Param("storeId") Long storeId);
 
+    @Select("""
+            SELECT id, tenant_id, store_id, pay_no, order_id, pay_channel, out_trade_no, channel_trade_no,
+                   amount, pay_status, CAST(callback_raw AS CHAR) AS callbackRaw, paid_at, created_at, updated_at
+            FROM t_payment_transaction
+            WHERE tenant_id = #{tenantId} AND store_id = #{storeId}
+            ORDER BY id
+            """)
+    List<MysqlFinancePo.PaymentPo> listPayments(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
+
     @Update("""
             UPDATE t_payment_transaction
             SET channel_trade_no = #{channelTradeNo}, callback_raw = #{callbackRaw},
@@ -127,6 +136,15 @@ public interface MysqlFinanceMapper {
             WHERE id = #{id} AND tenant_id = #{tenantId} AND store_id = #{storeId}
             """)
     MysqlFinancePo.RefundPo getRefund(@Param("id") Long id, @Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
+
+    @Select("""
+            SELECT id, tenant_id, store_id, refund_no, order_id, payment_id, refund_amount, reason,
+                   status, approved_by, approved_at, created_at, updated_at
+            FROM t_refund
+            WHERE tenant_id = #{tenantId} AND store_id = #{storeId}
+            ORDER BY id
+            """)
+    List<MysqlFinancePo.RefundPo> listRefunds(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
 
     @Update("""
             UPDATE t_refund

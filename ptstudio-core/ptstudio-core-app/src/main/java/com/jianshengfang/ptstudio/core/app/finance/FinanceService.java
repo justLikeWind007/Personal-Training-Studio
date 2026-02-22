@@ -51,6 +51,14 @@ public class FinanceService {
         return financeRepository.getOrder(orderId, tenantId, storeId);
     }
 
+    public List<InMemoryFinanceStore.PaymentData> listPayments(String tenantId, String storeId) {
+        return financeRepository.listPayments(tenantId, storeId);
+    }
+
+    public List<InMemoryFinanceStore.RefundData> listRefunds(String tenantId, String storeId) {
+        return financeRepository.listRefunds(tenantId, storeId);
+    }
+
     @Transactional
     public InMemoryFinanceStore.PaymentData precreateAlipay(Long orderId, String tenantId, String storeId) {
         InMemoryFinanceStore.OrderData order = getOrder(orderId, tenantId, storeId)
