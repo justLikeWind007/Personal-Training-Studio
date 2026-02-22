@@ -1,12 +1,16 @@
 package com.jianshengfang.ptstudio.core.adapter.settings;
 
 import com.jianshengfang.ptstudio.core.adapter.audit.AuditAction;
+import com.jianshengfang.ptstudio.core.app.auth.AuthService;
+import com.jianshengfang.ptstudio.core.app.auth.UserIdentity;
 import com.jianshengfang.ptstudio.core.app.context.TenantStoreContext;
 import com.jianshengfang.ptstudio.core.app.context.TenantStoreContextHolder;
+import com.jianshengfang.ptstudio.core.app.rbac.RbacService;
 import com.jianshengfang.ptstudio.core.app.settings.StoreSettings;
 import com.jianshengfang.ptstudio.core.app.settings.StoreSettingsService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.HttpHeaders;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
 
@@ -22,16 +27,34 @@ import java.util.List;
 @Validated
 public class StoreOrgAdminController {
 
-    private final StoreSettingsService storeSettingsService;
+    private static final String BEARER_PREFIX = "Bearer ";
 
-    public StoreOrgAdminController(StoreSettingsService storeSettingsService) {
+    private final StoreSettingsService storeSettingsService;
+    private final AuthService authService;
+    private final RbacService rbacService;
+
+    public StoreOrgAdminController(StoreSettingsService storeSettingsService,
+                                   AuthService authService,
+                                   RbacService rbacService) {
         this.storeSettingsService = storeSettingsService;
+        this.authService = authService;
+        this.rbacService = rbacService;
     }
 
     @GetMapping
-    public List<StoreSettings> listStores() {
+    public List<StoreSettings> listStores(@RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization) {
         TenantStoreContext context = requireContext();
-        return storeSettingsService.listByTenant(context.tenantId());
+        List<StoreSettings> all = storeSettingsService.listByTenant(context.tenantId());
+        UserIdentity user = authService.currentUser(extractToken(authorization)).orElse(null);
+        if (user == null) {
+            return all;
+        }
+        List<String> allowedStoreIds = rbacService.filterStoreIds(
+                user.userId(),
+                user.storeId(),
+                all.stream().map(StoreSettings::storeId).toList()
+        );
+        return all.stream().filter(store -> allowedStoreIds.contains(store.storeId())).toList();
     }
 
     @PostMapping
@@ -68,5 +91,15 @@ public class StoreOrgAdminController {
     }
 
     public record UpdateStoreStatusRequest(@NotBlank String status) {
+    }
+
+    private String extractToken(String authorization) {
+        if (authorization == null || authorization.isBlank()) {
+            return null;
+        }
+        if (authorization.startsWith(BEARER_PREFIX)) {
+            return authorization.substring(BEARER_PREFIX.length());
+        }
+        return authorization;
     }
 }
