@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Mapper
@@ -106,4 +107,64 @@ public interface MysqlAttendanceMapper {
             WHERE tenant_id = #{tenantId} AND store_id = #{storeId} AND status = 'SUCCESS'
             """)
     Long countSuccessConsumptions(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
+
+    @Insert("""
+            INSERT INTO t_approval_request(tenant_id, store_id, biz_type, biz_id, status, reason, submitted_by, submitted_at)
+            VALUES(#{tenantId}, #{storeId}, #{bizType}, #{bizId}, #{status}, #{reason}, #{submittedBy}, #{submittedAt})
+            """)
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int insertApproval(MysqlAttendancePo.ApprovalPo po);
+
+    @Select("""
+            SELECT id, tenant_id, store_id, biz_type, biz_id, status, reason, submitted_by, submitted_at,
+                   approved_by, approved_at, reject_reason
+            FROM t_approval_request
+            WHERE tenant_id = #{tenantId} AND store_id = #{storeId} AND biz_type = #{bizType} AND biz_id = #{bizId}
+            LIMIT 1
+            """)
+    MysqlAttendancePo.ApprovalPo getApprovalByBiz(@Param("tenantId") Long tenantId,
+                                                  @Param("storeId") Long storeId,
+                                                  @Param("bizType") String bizType,
+                                                  @Param("bizId") Long bizId);
+
+    @Select("""
+            SELECT id, tenant_id, store_id, biz_type, biz_id, status, reason, submitted_by, submitted_at,
+                   approved_by, approved_at, reject_reason
+            FROM t_approval_request
+            WHERE id = #{id} AND tenant_id = #{tenantId} AND store_id = #{storeId}
+            LIMIT 1
+            """)
+    MysqlAttendancePo.ApprovalPo getApproval(@Param("id") Long id,
+                                             @Param("tenantId") Long tenantId,
+                                             @Param("storeId") Long storeId);
+
+    @Select("""
+            SELECT id, tenant_id, store_id, biz_type, biz_id, status, reason, submitted_by, submitted_at,
+                   approved_by, approved_at, reject_reason
+            FROM t_approval_request
+            WHERE tenant_id = #{tenantId} AND store_id = #{storeId}
+              AND biz_type = #{bizType}
+              AND (#{status} IS NULL OR status = #{status})
+            ORDER BY id
+            """)
+    List<MysqlAttendancePo.ApprovalPo> listApprovals(@Param("tenantId") Long tenantId,
+                                                     @Param("storeId") Long storeId,
+                                                     @Param("bizType") String bizType,
+                                                     @Param("status") String status);
+
+    @Update("""
+            UPDATE t_approval_request
+            SET status = #{status},
+                approved_by = #{approvedBy},
+                approved_at = #{approvedAt},
+                reject_reason = #{rejectReason}
+            WHERE id = #{id} AND tenant_id = #{tenantId} AND store_id = #{storeId}
+            """)
+    int updateApproval(@Param("id") Long id,
+                       @Param("tenantId") Long tenantId,
+                       @Param("storeId") Long storeId,
+                       @Param("status") String status,
+                       @Param("approvedBy") Long approvedBy,
+                       @Param("approvedAt") OffsetDateTime approvedAt,
+                       @Param("rejectReason") String rejectReason);
 }

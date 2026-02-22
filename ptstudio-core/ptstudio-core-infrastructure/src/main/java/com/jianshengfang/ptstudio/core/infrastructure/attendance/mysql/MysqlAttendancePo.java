@@ -81,4 +81,43 @@ public class MysqlAttendancePo {
         public OffsetDateTime getCreatedAt() { return createdAt; }
         public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     }
+
+    public static class ApprovalPo {
+        private Long id;
+        private Long tenantId;
+        private Long storeId;
+        private String bizType;
+        private Long bizId;
+        private String status;
+        private String reason;
+        private Long submittedBy;
+        private OffsetDateTime submittedAt;
+        private Long approvedBy;
+        private OffsetDateTime approvedAt;
+        private String rejectReason;
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public Long getTenantId() { return tenantId; }
+        public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
+        public Long getStoreId() { return storeId; }
+        public void setStoreId(Long storeId) { this.storeId = storeId; }
+        public String getBizType() { return bizType; }
+        public void setBizType(String bizType) { this.bizType = bizType; }
+        public Long getBizId() { return bizId; }
+        public void setBizId(Long bizId) { this.bizId = bizId; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public String getReason() { return reason; }
+        public void setReason(String reason) { this.reason = reason; }
+        public Long getSubmittedBy() { return submittedBy; }
+        public void setSubmittedBy(Long submittedBy) { this.submittedBy = submittedBy; }
+        public OffsetDateTime getSubmittedAt() { return submittedAt; }
+        public void setSubmittedAt(OffsetDateTime submittedAt) { this.submittedAt = submittedAt; }
+        public Long getApprovedBy() { return approvedBy; }
+        public void setApprovedBy(Long approvedBy) { this.approvedBy = approvedBy; }
+        public OffsetDateTime getApprovedAt() { return approvedAt; }
+        public void setApprovedAt(OffsetDateTime approvedAt) { this.approvedAt = approvedAt; }
+        public String getRejectReason() { return rejectReason; }
+        public void setRejectReason(String rejectReason) { this.rejectReason = rejectReason; }
+    }
 }

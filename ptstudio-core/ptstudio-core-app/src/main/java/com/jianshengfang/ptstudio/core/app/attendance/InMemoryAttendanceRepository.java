@@ -120,4 +120,89 @@ public class InMemoryAttendanceRepository implements AttendanceRepository {
         store.consumptionById().put(consumptionId, updated);
         return updated;
     }
+
+    @Override
+    public InMemoryAttendanceStore.ApprovalRequestData createApprovalRequest(String tenantId,
+                                                                              String storeId,
+                                                                              String bizType,
+                                                                              Long bizId,
+                                                                              String reason,
+                                                                              Long submittedBy,
+                                                                              OffsetDateTime submittedAt) {
+        long id = store.nextApprovalId();
+        InMemoryAttendanceStore.ApprovalRequestData data = new InMemoryAttendanceStore.ApprovalRequestData(
+                id, tenantId, storeId, bizType, bizId, "PENDING", reason, submittedBy,
+                submittedAt, null, null, null
+        );
+        store.approvalById().put(id, data);
+        return data;
+    }
+
+    @Override
+    public Optional<InMemoryAttendanceStore.ApprovalRequestData> getApprovalRequestByBiz(String tenantId,
+                                                                                           String storeId,
+                                                                                           String bizType,
+                                                                                           Long bizId) {
+        return store.approvalById().values().stream()
+                .filter(a -> a.tenantId().equals(tenantId)
+                        && a.storeId().equals(storeId)
+                        && a.bizType().equals(bizType)
+                        && a.bizId().equals(bizId))
+                .findFirst();
+    }
+
+    @Override
+    public Optional<InMemoryAttendanceStore.ApprovalRequestData> getApprovalRequest(Long id,
+                                                                                     String tenantId,
+                                                                                     String storeId) {
+        InMemoryAttendanceStore.ApprovalRequestData data = store.approvalById().get(id);
+        if (data == null) {
+            return Optional.empty();
+        }
+        if (!data.tenantId().equals(tenantId) || !data.storeId().equals(storeId)) {
+            return Optional.empty();
+        }
+        return Optional.of(data);
+    }
+
+    @Override
+    public List<InMemoryAttendanceStore.ApprovalRequestData> listApprovalRequests(String tenantId,
+                                                                                   String storeId,
+                                                                                   String bizType,
+                                                                                   String status) {
+        return store.approvalById().values().stream()
+                .filter(a -> a.tenantId().equals(tenantId) && a.storeId().equals(storeId))
+                .filter(a -> bizType == null || a.bizType().equals(bizType))
+                .filter(a -> status == null || a.status().equals(status))
+                .sorted(Comparator.comparing(InMemoryAttendanceStore.ApprovalRequestData::id))
+                .toList();
+    }
+
+    @Override
+    public InMemoryAttendanceStore.ApprovalRequestData updateApprovalRequest(String tenantId,
+                                                                             String storeId,
+                                                                             Long id,
+                                                                             String status,
+                                                                             Long approvedBy,
+                                                                             String rejectReason,
+                                                                             OffsetDateTime approvedAt) {
+        InMemoryAttendanceStore.ApprovalRequestData existing = getApprovalRequest(id, tenantId, storeId)
+                .orElseThrow(() -> new IllegalArgumentException("审批单不存在"));
+        InMemoryAttendanceStore.ApprovalRequestData updated = new InMemoryAttendanceStore.ApprovalRequestData(
+                existing.id(),
+                existing.tenantId(),
+                existing.storeId(),
+                existing.bizType(),
+                existing.bizId(),
+                status,
+                existing.reason(),
+                existing.submittedBy(),
+                existing.submittedAt(),
+                approvedBy,
+                approvedAt,
+                rejectReason
+        );
+        store.approvalById().put(id, updated);
+        return updated;
+    }
 }

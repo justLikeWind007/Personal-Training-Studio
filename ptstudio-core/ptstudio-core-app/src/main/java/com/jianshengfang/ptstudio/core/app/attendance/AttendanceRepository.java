@@ -41,4 +41,34 @@ public interface AttendanceRepository {
                                                                     String status,
                                                                     Long operatorUserId,
                                                                     OffsetDateTime updatedAt);
+
+    InMemoryAttendanceStore.ApprovalRequestData createApprovalRequest(String tenantId,
+                                                                      String storeId,
+                                                                      String bizType,
+                                                                      Long bizId,
+                                                                      String reason,
+                                                                      Long submittedBy,
+                                                                      OffsetDateTime submittedAt);
+
+    Optional<InMemoryAttendanceStore.ApprovalRequestData> getApprovalRequestByBiz(String tenantId,
+                                                                                   String storeId,
+                                                                                   String bizType,
+                                                                                   Long bizId);
+
+    Optional<InMemoryAttendanceStore.ApprovalRequestData> getApprovalRequest(Long id,
+                                                                              String tenantId,
+                                                                              String storeId);
+
+    List<InMemoryAttendanceStore.ApprovalRequestData> listApprovalRequests(String tenantId,
+                                                                           String storeId,
+                                                                           String bizType,
+                                                                           String status);
+
+    InMemoryAttendanceStore.ApprovalRequestData updateApprovalRequest(String tenantId,
+                                                                      String storeId,
+                                                                      Long id,
+                                                                      String status,
+                                                                      Long approvedBy,
+                                                                      String rejectReason,
+                                                                      OffsetDateTime approvedAt);
 }

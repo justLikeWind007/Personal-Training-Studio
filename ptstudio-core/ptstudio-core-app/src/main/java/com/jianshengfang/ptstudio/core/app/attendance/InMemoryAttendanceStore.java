@@ -12,10 +12,12 @@ public class InMemoryAttendanceStore {
 
     private final AtomicLong checkinIdGenerator = new AtomicLong(1);
     private final AtomicLong consumptionIdGenerator = new AtomicLong(1);
+    private final AtomicLong approvalIdGenerator = new AtomicLong(1);
 
     private final Map<Long, CheckinData> checkinById = new ConcurrentHashMap<>();
     private final Map<Long, ConsumptionData> consumptionById = new ConcurrentHashMap<>();
     private final Map<String, Long> consumptionIdByIdemKey = new ConcurrentHashMap<>();
+    private final Map<Long, ApprovalRequestData> approvalById = new ConcurrentHashMap<>();
 
     public long nextCheckinId() {
         return checkinIdGenerator.getAndIncrement();
@@ -23,6 +25,10 @@ public class InMemoryAttendanceStore {
 
     public long nextConsumptionId() {
         return consumptionIdGenerator.getAndIncrement();
+    }
+
+    public long nextApprovalId() {
+        return approvalIdGenerator.getAndIncrement();
     }
 
     public Map<Long, CheckinData> checkinById() {
@@ -35,6 +41,10 @@ public class InMemoryAttendanceStore {
 
     public Map<String, Long> consumptionIdByIdemKey() {
         return consumptionIdByIdemKey;
+    }
+
+    public Map<Long, ApprovalRequestData> approvalById() {
+        return approvalById;
     }
 
     public record CheckinData(Long id,
@@ -61,5 +71,19 @@ public class InMemoryAttendanceStore {
                                   OffsetDateTime consumeTime,
                                   OffsetDateTime createdAt,
                                   OffsetDateTime updatedAt) {
+    }
+
+    public record ApprovalRequestData(Long id,
+                                      String tenantId,
+                                      String storeId,
+                                      String bizType,
+                                      Long bizId,
+                                      String status,
+                                      String reason,
+                                      Long submittedBy,
+                                      OffsetDateTime submittedAt,
+                                      Long approvedBy,
+                                      OffsetDateTime approvedAt,
+                                      String rejectReason) {
     }
 }

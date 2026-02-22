@@ -10,6 +10,8 @@ import java.util.List;
 @Service
 public class AttendanceService {
 
+    private static final String MAKEUP_CHECKIN_BIZ_TYPE = "MAKEUP_CHECKIN";
+
     private final AttendanceRepository attendanceRepository;
     private final ScheduleRepository scheduleRepository;
 
@@ -85,6 +87,89 @@ public class AttendanceService {
                 existing.id(), tenantId, storeId, "REVERSED", operatorUserId, OffsetDateTime.now());
     }
 
+    public InMemoryAttendanceStore.ApprovalRequestData submitMakeupApproval(SubmitMakeupApprovalCommand command) {
+        InMemoryScheduleStore.ReservationData reservation = getBookedReservation(
+                command.reservationId(), command.tenantId(), command.storeId());
+        if (attendanceRepository.existsCheckedInReservation(command.tenantId(), command.storeId(), reservation.id())) {
+            throw new IllegalArgumentException("该预约已签到，无需补签");
+        }
+        boolean exists = attendanceRepository.getApprovalRequestByBiz(
+                command.tenantId(), command.storeId(), MAKEUP_CHECKIN_BIZ_TYPE, reservation.id()).isPresent();
+        if (exists) {
+            throw new IllegalArgumentException("该预约补签审批已存在");
+        }
+        return attendanceRepository.createApprovalRequest(
+                command.tenantId(),
+                command.storeId(),
+                MAKEUP_CHECKIN_BIZ_TYPE,
+                reservation.id(),
+                command.reason(),
+                command.submittedBy(),
+                OffsetDateTime.now()
+        );
+    }
+
+    public List<InMemoryAttendanceStore.ApprovalRequestData> listMakeupApprovals(String tenantId,
+                                                                                  String storeId,
+                                                                                  String status) {
+        return attendanceRepository.listApprovalRequests(tenantId, storeId, MAKEUP_CHECKIN_BIZ_TYPE, status);
+    }
+
+    public InMemoryAttendanceStore.ApprovalRequestData approveMakeupApproval(ApproveMakeupApprovalCommand command) {
+        InMemoryAttendanceStore.ApprovalRequestData approval = attendanceRepository
+                .getApprovalRequest(command.approvalId(), command.tenantId(), command.storeId())
+                .orElseThrow(() -> new IllegalArgumentException("审批单不存在"));
+        if (!MAKEUP_CHECKIN_BIZ_TYPE.equals(approval.bizType())) {
+            throw new IllegalArgumentException("审批业务类型不匹配");
+        }
+        if (!"PENDING".equals(approval.status())) {
+            throw new IllegalArgumentException("审批单状态不可通过");
+        }
+        InMemoryScheduleStore.ReservationData reservation = getBookedReservation(
+                approval.bizId(), command.tenantId(), command.storeId());
+        if (!attendanceRepository.existsCheckedInReservation(command.tenantId(), command.storeId(), reservation.id())) {
+            attendanceRepository.createCheckin(
+                    command.tenantId(),
+                    command.storeId(),
+                    reservation.id(),
+                    reservation.memberId(),
+                    "MAKEUP_APPROVED",
+                    command.approvedBy(),
+                    OffsetDateTime.now()
+            );
+        }
+        return attendanceRepository.updateApprovalRequest(
+                command.tenantId(),
+                command.storeId(),
+                command.approvalId(),
+                "APPROVED",
+                command.approvedBy(),
+                null,
+                OffsetDateTime.now()
+        );
+    }
+
+    public InMemoryAttendanceStore.ApprovalRequestData rejectMakeupApproval(RejectMakeupApprovalCommand command) {
+        InMemoryAttendanceStore.ApprovalRequestData approval = attendanceRepository
+                .getApprovalRequest(command.approvalId(), command.tenantId(), command.storeId())
+                .orElseThrow(() -> new IllegalArgumentException("审批单不存在"));
+        if (!MAKEUP_CHECKIN_BIZ_TYPE.equals(approval.bizType())) {
+            throw new IllegalArgumentException("审批业务类型不匹配");
+        }
+        if (!"PENDING".equals(approval.status())) {
+            throw new IllegalArgumentException("审批单状态不可拒绝");
+        }
+        return attendanceRepository.updateApprovalRequest(
+                command.tenantId(),
+                command.storeId(),
+                command.approvalId(),
+                "REJECTED",
+                command.approvedBy(),
+                command.rejectReason(),
+                OffsetDateTime.now()
+        );
+    }
+
     private InMemoryScheduleStore.ReservationData getBookedReservation(Long reservationId,
                                                                        String tenantId,
                                                                        String storeId) {
@@ -110,5 +195,25 @@ public class AttendanceService {
                                  Integer sessionsDelta,
                                  String idemKey,
                                  Long operatorUserId) {
+    }
+
+    public record SubmitMakeupApprovalCommand(String tenantId,
+                                              String storeId,
+                                              Long reservationId,
+                                              String reason,
+                                              Long submittedBy) {
+    }
+
+    public record ApproveMakeupApprovalCommand(String tenantId,
+                                               String storeId,
+                                               Long approvalId,
+                                               Long approvedBy) {
+    }
+
+    public record RejectMakeupApprovalCommand(String tenantId,
+                                              String storeId,
+                                              Long approvalId,
+                                              String rejectReason,
+                                              Long approvedBy) {
     }
 }

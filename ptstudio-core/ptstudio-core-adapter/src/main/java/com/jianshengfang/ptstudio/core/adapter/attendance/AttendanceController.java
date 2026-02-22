@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -76,6 +77,56 @@ public class AttendanceController {
         return attendanceService.reverse(id, context.tenantId(), context.storeId(), request.operatorUserId());
     }
 
+    @PostMapping("/api/checkins/makeups")
+    @AuditAction(module = "CHECKIN", action = "MAKEUP_SUBMIT")
+    public InMemoryAttendanceStore.ApprovalRequestData submitMakeupApproval(
+            @Valid @RequestBody SubmitMakeupApprovalRequest request) {
+        TenantStoreContext context = requireContext();
+        return attendanceService.submitMakeupApproval(new AttendanceService.SubmitMakeupApprovalCommand(
+                context.tenantId(),
+                context.storeId(),
+                request.reservationId(),
+                request.reason(),
+                request.submittedBy()
+        ));
+    }
+
+    @GetMapping("/api/checkins/makeups")
+    public List<InMemoryAttendanceStore.ApprovalRequestData> listMakeupApprovals(
+            @RequestParam(value = "status", required = false) String status) {
+        TenantStoreContext context = requireContext();
+        return attendanceService.listMakeupApprovals(context.tenantId(), context.storeId(), status);
+    }
+
+    @PostMapping("/api/checkins/makeups/{id}/approve")
+    @AuditAction(module = "CHECKIN", action = "MAKEUP_APPROVE")
+    public InMemoryAttendanceStore.ApprovalRequestData approveMakeupApproval(
+            @PathVariable Long id,
+            @Valid @RequestBody MakeupApproveRequest request) {
+        TenantStoreContext context = requireContext();
+        return attendanceService.approveMakeupApproval(new AttendanceService.ApproveMakeupApprovalCommand(
+                context.tenantId(),
+                context.storeId(),
+                id,
+                request.approvedBy()
+        ));
+    }
+
+    @PostMapping("/api/checkins/makeups/{id}/reject")
+    @AuditAction(module = "CHECKIN", action = "MAKEUP_REJECT")
+    public InMemoryAttendanceStore.ApprovalRequestData rejectMakeupApproval(
+            @PathVariable Long id,
+            @Valid @RequestBody MakeupRejectRequest request) {
+        TenantStoreContext context = requireContext();
+        return attendanceService.rejectMakeupApproval(new AttendanceService.RejectMakeupApprovalCommand(
+                context.tenantId(),
+                context.storeId(),
+                id,
+                request.rejectReason(),
+                request.approvedBy()
+        ));
+    }
+
     private TenantStoreContext requireContext() {
         TenantStoreContext context = TenantStoreContextHolder.get();
         if (context == null) {
@@ -96,5 +147,17 @@ public class AttendanceController {
     }
 
     public record ReverseConsumptionRequest(@NotNull Long operatorUserId) {
+    }
+
+    public record SubmitMakeupApprovalRequest(@NotNull Long reservationId,
+                                              @NotBlank String reason,
+                                              @NotNull Long submittedBy) {
+    }
+
+    public record MakeupApproveRequest(@NotNull Long approvedBy) {
+    }
+
+    public record MakeupRejectRequest(@NotBlank String rejectReason,
+                                      @NotNull Long approvedBy) {
     }
 }

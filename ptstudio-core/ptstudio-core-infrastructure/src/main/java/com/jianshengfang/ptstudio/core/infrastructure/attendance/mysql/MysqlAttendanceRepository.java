@@ -113,6 +113,68 @@ public class MysqlAttendanceRepository implements AttendanceRepository {
         return toConsumption(po, tenantId, storeId);
     }
 
+    @Override
+    public InMemoryAttendanceStore.ApprovalRequestData createApprovalRequest(String tenantId,
+                                                                              String storeId,
+                                                                              String bizType,
+                                                                              Long bizId,
+                                                                              String reason,
+                                                                              Long submittedBy,
+                                                                              OffsetDateTime submittedAt) {
+        MysqlAttendancePo.ApprovalPo po = new MysqlAttendancePo.ApprovalPo();
+        po.setTenantId(toLong(tenantId));
+        po.setStoreId(toLong(storeId));
+        po.setBizType(bizType);
+        po.setBizId(bizId);
+        po.setStatus("PENDING");
+        po.setReason(reason);
+        po.setSubmittedBy(submittedBy);
+        po.setSubmittedAt(submittedAt);
+        mapper.insertApproval(po);
+        MysqlAttendancePo.ApprovalPo latest = mapper.getApproval(po.getId(), po.getTenantId(), po.getStoreId());
+        return toApproval(latest, tenantId, storeId);
+    }
+
+    @Override
+    public Optional<InMemoryAttendanceStore.ApprovalRequestData> getApprovalRequestByBiz(String tenantId,
+                                                                                           String storeId,
+                                                                                           String bizType,
+                                                                                           Long bizId) {
+        return Optional.ofNullable(mapper.getApprovalByBiz(toLong(tenantId), toLong(storeId), bizType, bizId))
+                .map(po -> toApproval(po, tenantId, storeId));
+    }
+
+    @Override
+    public Optional<InMemoryAttendanceStore.ApprovalRequestData> getApprovalRequest(Long id,
+                                                                                     String tenantId,
+                                                                                     String storeId) {
+        return Optional.ofNullable(mapper.getApproval(id, toLong(tenantId), toLong(storeId)))
+                .map(po -> toApproval(po, tenantId, storeId));
+    }
+
+    @Override
+    public List<InMemoryAttendanceStore.ApprovalRequestData> listApprovalRequests(String tenantId,
+                                                                                   String storeId,
+                                                                                   String bizType,
+                                                                                   String status) {
+        return mapper.listApprovals(toLong(tenantId), toLong(storeId), bizType, status).stream()
+                .map(po -> toApproval(po, tenantId, storeId))
+                .toList();
+    }
+
+    @Override
+    public InMemoryAttendanceStore.ApprovalRequestData updateApprovalRequest(String tenantId,
+                                                                             String storeId,
+                                                                             Long id,
+                                                                             String status,
+                                                                             Long approvedBy,
+                                                                             String rejectReason,
+                                                                             OffsetDateTime approvedAt) {
+        mapper.updateApproval(id, toLong(tenantId), toLong(storeId), status, approvedBy, approvedAt, rejectReason);
+        MysqlAttendancePo.ApprovalPo po = mapper.getApproval(id, toLong(tenantId), toLong(storeId));
+        return toApproval(po, tenantId, storeId);
+    }
+
     private InMemoryAttendanceStore.CheckinData toCheckin(MysqlAttendancePo.CheckinPo po, String tenantId, String storeId) {
         return new InMemoryAttendanceStore.CheckinData(
                 po.getId(), po.getReservationId(), po.getMemberId(), tenantId, storeId,
@@ -130,6 +192,25 @@ public class MysqlAttendanceRepository implements AttendanceRepository {
                 po.getId(), po.getReservationId(), po.getMemberPackageAccountId(), po.getSessionsDelta(),
                 tenantId, storeId, po.getIdemKey(), po.getOperatorUserId(),
                 status, po.getConsumeTime(), po.getCreatedAt(), po.getCreatedAt()
+        );
+    }
+
+    private InMemoryAttendanceStore.ApprovalRequestData toApproval(MysqlAttendancePo.ApprovalPo po,
+                                                                   String tenantId,
+                                                                   String storeId) {
+        return new InMemoryAttendanceStore.ApprovalRequestData(
+                po.getId(),
+                tenantId,
+                storeId,
+                po.getBizType(),
+                po.getBizId(),
+                po.getStatus(),
+                po.getReason(),
+                po.getSubmittedBy(),
+                po.getSubmittedAt(),
+                po.getApprovedBy(),
+                po.getApprovedAt(),
+                po.getRejectReason()
         );
     }
 

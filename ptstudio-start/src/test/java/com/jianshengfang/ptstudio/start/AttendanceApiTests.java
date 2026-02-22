@@ -106,6 +106,93 @@ class AttendanceApiTests {
                 .andExpect(jsonPath("$.length()").value(1));
     }
 
+    @Test
+    void shouldSubmitApproveAndRejectMakeupCheckinFlow() throws Exception {
+        long memberId = createMember();
+        long coachId = createCoach();
+        long slotId = createSlot(coachId);
+        long reservationId = createReservation(memberId, slotId);
+
+        String submitReq = """
+                {
+                  "reservationId": %d,
+                  "reason": "member_late_sync",
+                  "submittedBy": 1002
+                }
+                """.formatted(reservationId);
+        String submitResp = mockMvc.perform(post("/api/checkins/makeups")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(submitReq))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        long approvalId = objectMapper.readTree(submitResp).path("id").asLong();
+
+        mockMvc.perform(get("/api/checkins/makeups")
+                        .param("status", "PENDING")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+
+        String approveReq = """
+                {
+                  "approvedBy": 9001
+                }
+                """;
+        mockMvc.perform(post("/api/checkins/makeups/{id}/approve", approvalId)
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(approveReq))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"));
+
+        mockMvc.perform(get("/api/checkins")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].checkinChannel").value("MAKEUP_APPROVED"));
+
+        long reservationId2 = createReservation(createMember(), createSlot(createCoach()));
+        String submitReq2 = """
+                {
+                  "reservationId": %d,
+                  "reason": "manual_fix",
+                  "submittedBy": 1003
+                }
+                """.formatted(reservationId2);
+        String submitResp2 = mockMvc.perform(post("/api/checkins/makeups")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(submitReq2))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        long approvalId2 = objectMapper.readTree(submitResp2).path("id").asLong();
+
+        String rejectReq = """
+                {
+                  "rejectReason": "evidence_missing",
+                  "approvedBy": 9002
+                }
+                """;
+        mockMvc.perform(post("/api/checkins/makeups/{id}/reject", approvalId2)
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(rejectReq))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectReason").value("evidence_missing"));
+    }
+
     private long createMember() throws Exception {
         String req = """
                 {
