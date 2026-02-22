@@ -5,18 +5,18 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class ReservationService {
 
-    private final InMemoryScheduleStore scheduleStore;
+    private final ScheduleRepository scheduleRepository;
     private final MemberService memberService;
 
-    public ReservationService(InMemoryScheduleStore scheduleStore, MemberService memberService) {
-        this.scheduleStore = scheduleStore;
+    public ReservationService(ScheduleRepository scheduleRepository, MemberService memberService) {
+        this.scheduleRepository = scheduleRepository;
         this.memberService = memberService;
     }
 
@@ -24,26 +24,15 @@ public class ReservationService {
                                                                    String storeId,
                                                                    Long coachId,
                                                                    LocalDate slotDate) {
-        return scheduleStore.slotById().values().stream()
-                .filter(slot -> slot.tenantId().equals(tenantId) && slot.storeId().equals(storeId))
-                .filter(slot -> slot.status().equals("OPEN"))
-                .filter(slot -> slot.bookedCount() < slot.capacity())
-                .filter(slot -> coachId == null || slot.coachId().equals(coachId))
-                .filter(slot -> slotDate == null || slot.slotDate().equals(slotDate))
-                .sorted(Comparator.comparing(InMemoryScheduleStore.SlotData::slotDate)
-                        .thenComparing(InMemoryScheduleStore.SlotData::startTime))
-                .toList();
+        return scheduleRepository.listAvailableSlots(tenantId, storeId, coachId, slotDate);
     }
 
     public InMemoryScheduleStore.ReservationData createReservation(CreateReservationCommand command) {
         memberService.get(command.memberId(), command.tenantId(), command.storeId())
                 .orElseThrow(() -> new IllegalArgumentException("会员不存在"));
 
-        InMemoryScheduleStore.SlotData slot = Optional.ofNullable(scheduleStore.slotById().get(command.slotId()))
+        InMemoryScheduleStore.SlotData slot = scheduleRepository.getSlot(command.slotId(), command.tenantId(), command.storeId())
                 .orElseThrow(() -> new IllegalArgumentException("时段不存在"));
-        if (!slot.tenantId().equals(command.tenantId()) || !slot.storeId().equals(command.storeId())) {
-            throw new IllegalArgumentException("时段不存在");
-        }
         if (!slot.status().equals("OPEN")) {
             throw new IllegalArgumentException("该时段不可预约");
         }
@@ -51,49 +40,24 @@ public class ReservationService {
             throw new IllegalArgumentException("该时段已约满");
         }
 
-        boolean duplicated = scheduleStore.reservationById().values().stream()
-                .anyMatch(r -> r.tenantId().equals(command.tenantId())
-                        && r.storeId().equals(command.storeId())
-                        && r.memberId().equals(command.memberId())
-                        && r.slotId().equals(command.slotId())
-                        && r.status().equals("BOOKED"));
+        boolean duplicated = scheduleRepository.existsBookedReservation(
+                command.tenantId(), command.storeId(), command.memberId(), command.slotId());
         if (duplicated) {
             throw new IllegalArgumentException("请勿重复预约同一时段");
         }
 
-        long id = scheduleStore.nextReservationId();
         OffsetDateTime now = OffsetDateTime.now();
-        InMemoryScheduleStore.ReservationData reservation = new InMemoryScheduleStore.ReservationData(
-                id,
-                String.format("R%08d", id),
+        InMemoryScheduleStore.ReservationData reservation = scheduleRepository.createReservation(
+                command.tenantId(),
+                command.storeId(),
                 command.memberId(),
                 slot.coachId(),
                 slot.id(),
-                command.tenantId(),
-                command.storeId(),
-                "BOOKED",
-                null,
-                null,
-                now,
+                "R" + UUID.randomUUID().toString().replace("-", "").substring(0, 16),
                 now
         );
-        scheduleStore.reservationById().put(id, reservation);
-
-        InMemoryScheduleStore.SlotData updatedSlot = new InMemoryScheduleStore.SlotData(
-                slot.id(),
-                slot.coachId(),
-                slot.tenantId(),
-                slot.storeId(),
-                slot.slotDate(),
-                slot.startTime(),
-                slot.endTime(),
-                slot.capacity(),
-                slot.bookedCount() + 1,
-                slot.status(),
-                slot.createdAt(),
-                OffsetDateTime.now()
-        );
-        scheduleStore.slotById().put(slot.id(), updatedSlot);
+        scheduleRepository.updateSlotBookedCount(
+                slot.id(), slot.tenantId(), slot.storeId(), slot.bookedCount() + 1, OffsetDateTime.now());
         return reservation;
     }
 
@@ -102,24 +66,11 @@ public class ReservationService {
                                                                          Long memberId,
                                                                          Long coachId,
                                                                          String status) {
-        return scheduleStore.reservationById().values().stream()
-                .filter(r -> r.tenantId().equals(tenantId) && r.storeId().equals(storeId))
-                .filter(r -> memberId == null || r.memberId().equals(memberId))
-                .filter(r -> coachId == null || r.coachId().equals(coachId))
-                .filter(r -> status == null || r.status().equalsIgnoreCase(status))
-                .sorted(Comparator.comparing(InMemoryScheduleStore.ReservationData::id))
-                .toList();
+        return scheduleRepository.listReservations(tenantId, storeId, memberId, coachId, status);
     }
 
     public Optional<InMemoryScheduleStore.ReservationData> getReservation(Long id, String tenantId, String storeId) {
-        InMemoryScheduleStore.ReservationData reservation = scheduleStore.reservationById().get(id);
-        if (reservation == null) {
-            return Optional.empty();
-        }
-        if (!reservation.tenantId().equals(tenantId) || !reservation.storeId().equals(storeId)) {
-            return Optional.empty();
-        }
-        return Optional.of(reservation);
+        return scheduleRepository.getReservation(id, tenantId, storeId);
     }
 
     public InMemoryScheduleStore.ReservationData cancelReservation(Long id,
@@ -132,39 +83,17 @@ public class ReservationService {
             throw new IllegalArgumentException("当前状态不可取消");
         }
 
-        InMemoryScheduleStore.ReservationData canceled = new InMemoryScheduleStore.ReservationData(
-                reservation.id(),
-                reservation.reservationNo(),
-                reservation.memberId(),
-                reservation.coachId(),
-                reservation.slotId(),
-                reservation.tenantId(),
-                reservation.storeId(),
-                "CANCELED",
+        OffsetDateTime now = OffsetDateTime.now();
+        InMemoryScheduleStore.ReservationData canceled = scheduleRepository.cancelReservation(
+                id,
+                tenantId,
+                storeId,
                 cancelReason,
-                OffsetDateTime.now(),
-                reservation.createdAt(),
-                OffsetDateTime.now()
+                now
         );
-        scheduleStore.reservationById().put(id, canceled);
-
-        InMemoryScheduleStore.SlotData slot = scheduleStore.slotById().get(reservation.slotId());
+        InMemoryScheduleStore.SlotData slot = scheduleRepository.getSlot(reservation.slotId(), tenantId, storeId).orElse(null);
         if (slot != null && slot.bookedCount() > 0) {
-            InMemoryScheduleStore.SlotData slotRollback = new InMemoryScheduleStore.SlotData(
-                    slot.id(),
-                    slot.coachId(),
-                    slot.tenantId(),
-                    slot.storeId(),
-                    slot.slotDate(),
-                    slot.startTime(),
-                    slot.endTime(),
-                    slot.capacity(),
-                    slot.bookedCount() - 1,
-                    slot.status(),
-                    slot.createdAt(),
-                    OffsetDateTime.now()
-            );
-            scheduleStore.slotById().put(slot.id(), slotRollback);
+            scheduleRepository.updateSlotBookedCount(slot.id(), slot.tenantId(), slot.storeId(), slot.bookedCount() - 1, now);
         }
         return canceled;
     }
