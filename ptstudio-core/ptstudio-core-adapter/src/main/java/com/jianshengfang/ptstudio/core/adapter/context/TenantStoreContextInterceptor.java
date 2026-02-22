@@ -17,11 +17,8 @@ public class TenantStoreContextInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String tenantId = request.getHeader(TENANT_HEADER);
         String storeId = request.getHeader(STORE_HEADER);
-        if (tenantId == null || tenantId.isBlank()) {
-            tenantId = "tenant-demo";
-        }
-        if (storeId == null || storeId.isBlank()) {
-            storeId = "store-001";
+        if (tenantId == null || tenantId.isBlank() || storeId == null || storeId.isBlank()) {
+            throw new IllegalArgumentException("缺少租户门店上下文请求头");
         }
         TenantStoreContextHolder.set(new TenantStoreContext(tenantId, storeId));
         return true;

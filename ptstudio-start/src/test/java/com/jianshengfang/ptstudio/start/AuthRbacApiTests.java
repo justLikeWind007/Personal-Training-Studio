@@ -47,6 +47,8 @@ class AuthRbacApiTests {
         String token = jsonNode.path("token").asText();
 
         mockMvc.perform(get("/api/auth/me")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mobile").value("13800000001"));
@@ -54,7 +56,9 @@ class AuthRbacApiTests {
 
     @Test
     void shouldListAndAssignRoles() throws Exception {
-        mockMvc.perform(get("/api/rbac/roles"))
+        mockMvc.perform(get("/api/rbac/roles")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0]").value("STORE_MANAGER"));
 
@@ -65,6 +69,8 @@ class AuthRbacApiTests {
                 """;
 
         mockMvc.perform(post("/api/rbac/users/3001/roles")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(req))
                 .andExpect(status().isOk())
