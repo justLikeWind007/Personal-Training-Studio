@@ -6,18 +6,17 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class FinanceService {
 
-    private final InMemoryFinanceStore store;
+    private final FinanceRepository financeRepository;
     private final MemberService memberService;
 
-    public FinanceService(InMemoryFinanceStore store, MemberService memberService) {
-        this.store = store;
+    public FinanceService(FinanceRepository financeRepository, MemberService memberService) {
+        this.financeRepository = financeRepository;
         this.memberService = memberService;
     }
 
@@ -28,41 +27,25 @@ public class FinanceService {
             throw new IllegalArgumentException("订单金额必须大于0");
         }
 
-        long id = store.nextOrderId();
         OffsetDateTime now = OffsetDateTime.now();
-        InMemoryFinanceStore.OrderData order = new InMemoryFinanceStore.OrderData(
-                id,
-                String.format("O%08d", id),
-                command.memberId(),
+        String orderNo = "O" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        return financeRepository.createOrder(
                 command.tenantId(),
                 command.storeId(),
+                command.memberId(),
                 command.orderType(),
                 command.totalAmount(),
-                BigDecimal.ZERO,
-                "CREATED",
-                now,
+                orderNo,
                 now
         );
-        store.orderById().put(id, order);
-        return order;
     }
 
     public List<InMemoryFinanceStore.OrderData> listOrders(String tenantId, String storeId) {
-        return store.orderById().values().stream()
-                .filter(order -> order.tenantId().equals(tenantId) && order.storeId().equals(storeId))
-                .sorted(Comparator.comparing(InMemoryFinanceStore.OrderData::id))
-                .toList();
+        return financeRepository.listOrders(tenantId, storeId);
     }
 
     public Optional<InMemoryFinanceStore.OrderData> getOrder(Long orderId, String tenantId, String storeId) {
-        InMemoryFinanceStore.OrderData order = store.orderById().get(orderId);
-        if (order == null) {
-            return Optional.empty();
-        }
-        if (!order.tenantId().equals(tenantId) || !order.storeId().equals(storeId)) {
-            return Optional.empty();
-        }
-        return Optional.of(order);
+        return financeRepository.getOrder(orderId, tenantId, storeId);
     }
 
     public InMemoryFinanceStore.PaymentData precreateAlipay(Long orderId, String tenantId, String storeId) {
@@ -72,77 +55,49 @@ public class FinanceService {
             throw new IllegalArgumentException("当前订单状态不可发起支付");
         }
 
-        long paymentId = store.nextPaymentId();
         OffsetDateTime now = OffsetDateTime.now();
-        InMemoryFinanceStore.PaymentData payment = new InMemoryFinanceStore.PaymentData(
-                paymentId,
+        return financeRepository.createPrepayment(
                 order.id(),
                 tenantId,
                 storeId,
-                "ALIPAY",
-                null,
+                "P" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16),
+                "OUT" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16),
                 order.totalAmount(),
-                "WAIT_PAY",
-                null,
-                null,
-                now,
                 now
         );
-        store.paymentById().put(paymentId, payment);
-        return payment;
     }
 
     public InMemoryFinanceStore.PaymentData alipayCallback(PaymentCallbackCommand command) {
         InMemoryFinanceStore.OrderData order = getOrder(command.orderId(), command.tenantId(), command.storeId())
                 .orElseThrow(() -> new IllegalArgumentException("订单不存在"));
 
-        Long existingPaymentId = store.paymentIdByTradeNo().get(command.channelTradeNo());
-        if (existingPaymentId != null) {
-            InMemoryFinanceStore.PaymentData existing = store.paymentById().get(existingPaymentId);
-            if (existing != null) {
-                return existing;
-            }
+        Optional<InMemoryFinanceStore.PaymentData> existing = financeRepository.getPaymentByChannelTradeNo(
+                command.tenantId(), command.storeId(), command.channelTradeNo());
+        if (existing.isPresent()) {
+            return existing.get();
         }
 
-        InMemoryFinanceStore.PaymentData payment = store.paymentById().values().stream()
-                .filter(p -> p.orderId().equals(order.id())
-                        && p.tenantId().equals(command.tenantId())
-                        && p.storeId().equals(command.storeId()))
-                .max(Comparator.comparing(InMemoryFinanceStore.PaymentData::id))
+        InMemoryFinanceStore.PaymentData payment = financeRepository
+                .getLatestPaymentByOrder(order.id(), command.tenantId(), command.storeId())
                 .orElseThrow(() -> new IllegalArgumentException("请先发起预下单"));
 
         OffsetDateTime now = OffsetDateTime.now();
-        InMemoryFinanceStore.PaymentData paid = new InMemoryFinanceStore.PaymentData(
+        InMemoryFinanceStore.PaymentData paid = financeRepository.markPaymentPaid(
                 payment.id(),
-                payment.orderId(),
                 payment.tenantId(),
                 payment.storeId(),
-                payment.payChannel(),
                 command.channelTradeNo(),
-                payment.amount(),
-                "PAID",
                 command.callbackRaw(),
-                now,
-                payment.createdAt(),
                 now
         );
-        store.paymentById().put(paid.id(), paid);
-        store.paymentIdByTradeNo().put(command.channelTradeNo(), paid.id());
-
-        InMemoryFinanceStore.OrderData paidOrder = new InMemoryFinanceStore.OrderData(
+        financeRepository.updateOrderPaid(
                 order.id(),
-                order.orderNo(),
-                order.memberId(),
                 order.tenantId(),
                 order.storeId(),
-                order.orderType(),
-                order.totalAmount(),
                 paid.amount(),
                 "PAID",
-                order.createdAt(),
                 now
         );
-        store.orderById().put(order.id(), paidOrder);
         return paid;
     }
 
@@ -157,69 +112,52 @@ public class FinanceService {
             throw new IllegalArgumentException("退款金额非法");
         }
 
-        long id = store.nextRefundId();
+        InMemoryFinanceStore.PaymentData paidPayment = financeRepository
+                .getLatestPaidPaymentByOrder(order.id(), command.tenantId(), command.storeId())
+                .orElseThrow(() -> new IllegalArgumentException("未找到已支付流水"));
+
         OffsetDateTime now = OffsetDateTime.now();
-        InMemoryFinanceStore.RefundData refund = new InMemoryFinanceStore.RefundData(
-                id,
-                String.format("RF%08d", id),
+        return financeRepository.createRefund(
                 order.id(),
+                paidPayment.id(),
                 command.tenantId(),
                 command.storeId(),
                 command.refundAmount(),
                 command.reason(),
-                "PENDING",
-                null,
-                null,
-                now,
+                "RF" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16),
                 now
         );
-        store.refundById().put(id, refund);
-        return refund;
     }
 
     public InMemoryFinanceStore.RefundData approveRefund(Long refundId,
                                                          String tenantId,
                                                          String storeId,
                                                          Long approvedBy) {
-        InMemoryFinanceStore.RefundData refund = getRefund(refundId, tenantId, storeId)
+        InMemoryFinanceStore.RefundData refund = financeRepository.getRefund(refundId, tenantId, storeId)
                 .orElseThrow(() -> new IllegalArgumentException("退款单不存在"));
         if (!refund.status().equals("PENDING")) {
             throw new IllegalArgumentException("当前退款单状态不可审批");
         }
 
         OffsetDateTime now = OffsetDateTime.now();
-        InMemoryFinanceStore.RefundData approved = new InMemoryFinanceStore.RefundData(
+        InMemoryFinanceStore.RefundData approved = financeRepository.updateRefundDecision(
                 refund.id(),
-                refund.refundNo(),
-                refund.orderId(),
-                refund.tenantId(),
-                refund.storeId(),
-                refund.refundAmount(),
-                refund.reason(),
+                tenantId,
+                storeId,
                 "APPROVED",
                 approvedBy,
-                now,
-                refund.createdAt(),
                 now
         );
-        store.refundById().put(approved.id(), approved);
-
-        InMemoryFinanceStore.OrderData order = store.orderById().get(refund.orderId());
+        InMemoryFinanceStore.OrderData order = financeRepository.getOrder(refund.orderId(), tenantId, storeId).orElse(null);
         if (order != null) {
-            InMemoryFinanceStore.OrderData refundedOrder = new InMemoryFinanceStore.OrderData(
+            financeRepository.updateOrderRefunded(
                     order.id(),
-                    order.orderNo(),
-                    order.memberId(),
                     order.tenantId(),
                     order.storeId(),
-                    order.orderType(),
-                    order.totalAmount(),
                     order.paidAmount().subtract(approved.refundAmount()),
                     "REFUNDED",
-                    order.createdAt(),
                     now
             );
-            store.orderById().put(order.id(), refundedOrder);
         }
         return approved;
     }
@@ -228,47 +166,28 @@ public class FinanceService {
                                                         String tenantId,
                                                         String storeId,
                                                         Long approvedBy) {
-        InMemoryFinanceStore.RefundData refund = getRefund(refundId, tenantId, storeId)
+        InMemoryFinanceStore.RefundData refund = financeRepository.getRefund(refundId, tenantId, storeId)
                 .orElseThrow(() -> new IllegalArgumentException("退款单不存在"));
         if (!refund.status().equals("PENDING")) {
             throw new IllegalArgumentException("当前退款单状态不可审批");
         }
 
         OffsetDateTime now = OffsetDateTime.now();
-        InMemoryFinanceStore.RefundData rejected = new InMemoryFinanceStore.RefundData(
+        return financeRepository.updateRefundDecision(
                 refund.id(),
-                refund.refundNo(),
-                refund.orderId(),
-                refund.tenantId(),
-                refund.storeId(),
-                refund.refundAmount(),
-                refund.reason(),
+                tenantId,
+                storeId,
                 "REJECTED",
                 approvedBy,
-                now,
-                refund.createdAt(),
                 now
         );
-        store.refundById().put(rejected.id(), rejected);
-        return rejected;
     }
 
     public InMemoryFinanceStore.DailyReconcileData dailyReconcile(String tenantId, String storeId, LocalDate bizDate) {
         LocalDate date = bizDate == null ? LocalDate.now() : bizDate;
 
-        BigDecimal paidAmount = store.paymentById().values().stream()
-                .filter(p -> p.tenantId().equals(tenantId) && p.storeId().equals(storeId))
-                .filter(p -> "PAID".equals(p.payStatus()))
-                .filter(p -> p.paidAt() != null && p.paidAt().toLocalDate().equals(date))
-                .map(InMemoryFinanceStore.PaymentData::amount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal approvedRefundAmount = store.refundById().values().stream()
-                .filter(r -> r.tenantId().equals(tenantId) && r.storeId().equals(storeId))
-                .filter(r -> "APPROVED".equals(r.status()))
-                .filter(r -> r.approvedAt() != null && r.approvedAt().toLocalDate().equals(date))
-                .map(InMemoryFinanceStore.RefundData::refundAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal paidAmount = financeRepository.sumPaidAmountByDate(tenantId, storeId, date);
+        BigDecimal approvedRefundAmount = financeRepository.sumApprovedRefundAmountByDate(tenantId, storeId, date);
 
         BigDecimal actual = paidAmount.subtract(approvedRefundAmount);
         BigDecimal expected = actual;
@@ -276,17 +195,6 @@ public class FinanceService {
         String status = diff.compareTo(BigDecimal.ZERO) == 0 ? "BALANCED" : "DIFF_FOUND";
 
         return new InMemoryFinanceStore.DailyReconcileData(date, tenantId, storeId, expected, actual, diff, status);
-    }
-
-    private Optional<InMemoryFinanceStore.RefundData> getRefund(Long refundId, String tenantId, String storeId) {
-        InMemoryFinanceStore.RefundData refund = store.refundById().get(refundId);
-        if (refund == null) {
-            return Optional.empty();
-        }
-        if (!refund.tenantId().equals(tenantId) || !refund.storeId().equals(storeId)) {
-            return Optional.empty();
-        }
-        return Optional.of(refund);
     }
 
     public record CreateOrderCommand(String tenantId,
