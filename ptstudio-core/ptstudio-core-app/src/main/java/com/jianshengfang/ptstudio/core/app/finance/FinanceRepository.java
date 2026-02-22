@@ -75,6 +75,10 @@ public interface FinanceRepository {
                                                          Long approvedBy,
                                                          OffsetDateTime approvedAt);
 
+    BigDecimal sumReservedRefundAmountByOrder(Long orderId, String tenantId, String storeId);
+
+    BigDecimal sumApprovedRefundAmountByOrder(Long orderId, String tenantId, String storeId);
+
     BigDecimal sumPaidAmountByDate(String tenantId, String storeId, LocalDate bizDate);
 
     BigDecimal sumApprovedRefundAmountByDate(String tenantId, String storeId, LocalDate bizDate);

@@ -141,6 +141,30 @@ public interface MysqlFinanceMapper {
                              @Param("approvedAt") OffsetDateTime approvedAt);
 
     @Select("""
+            SELECT COALESCE(SUM(refund_amount), 0)
+            FROM t_refund
+            WHERE order_id = #{orderId}
+              AND tenant_id = #{tenantId}
+              AND store_id = #{storeId}
+              AND status IN ('PENDING', 'APPROVED')
+            """)
+    BigDecimal sumReservedRefundByOrder(@Param("orderId") Long orderId,
+                                        @Param("tenantId") Long tenantId,
+                                        @Param("storeId") Long storeId);
+
+    @Select("""
+            SELECT COALESCE(SUM(refund_amount), 0)
+            FROM t_refund
+            WHERE order_id = #{orderId}
+              AND tenant_id = #{tenantId}
+              AND store_id = #{storeId}
+              AND status = 'APPROVED'
+            """)
+    BigDecimal sumApprovedRefundByOrder(@Param("orderId") Long orderId,
+                                        @Param("tenantId") Long tenantId,
+                                        @Param("storeId") Long storeId);
+
+    @Select("""
             SELECT COALESCE(SUM(amount), 0)
             FROM t_payment_transaction
             WHERE tenant_id = #{tenantId} AND store_id = #{storeId}

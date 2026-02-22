@@ -107,9 +107,15 @@ public class FinanceService {
         if (!order.status().equals("PAID")) {
             throw new IllegalArgumentException("仅已支付订单允许发起退款");
         }
-        if (command.refundAmount().compareTo(BigDecimal.ZERO) <= 0
-                || command.refundAmount().compareTo(order.paidAmount()) > 0) {
+        if (command.refundAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("退款金额非法");
+        }
+        BigDecimal reservedAmount = financeRepository.sumReservedRefundAmountByOrder(
+                order.id(), command.tenantId(), command.storeId());
+        BigDecimal restRefundableAmount = order.totalAmount().subtract(reservedAmount);
+        if (restRefundableAmount.compareTo(BigDecimal.ZERO) < 0
+                || command.refundAmount().compareTo(restRefundableAmount) > 0) {
+            throw new IllegalArgumentException("退款金额超过可退额度");
         }
 
         InMemoryFinanceStore.PaymentData paidPayment = financeRepository
@@ -150,12 +156,19 @@ public class FinanceService {
         );
         InMemoryFinanceStore.OrderData order = financeRepository.getOrder(refund.orderId(), tenantId, storeId).orElse(null);
         if (order != null) {
+            BigDecimal approvedRefundAmount = financeRepository.sumApprovedRefundAmountByOrder(
+                    order.id(), order.tenantId(), order.storeId());
+            BigDecimal remainedPaidAmount = order.totalAmount().subtract(approvedRefundAmount);
+            if (remainedPaidAmount.compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalStateException("退款累计金额异常");
+            }
+            String orderStatus = remainedPaidAmount.compareTo(BigDecimal.ZERO) == 0 ? "REFUNDED" : "PAID";
             financeRepository.updateOrderRefunded(
                     order.id(),
                     order.tenantId(),
                     order.storeId(),
-                    order.paidAmount().subtract(approved.refundAmount()),
-                    "REFUNDED",
+                    remainedPaidAmount,
+                    orderStatus,
                     now
             );
         }

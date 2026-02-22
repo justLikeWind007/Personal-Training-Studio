@@ -150,6 +150,18 @@ public class MysqlFinanceRepository implements FinanceRepository {
     }
 
     @Override
+    public BigDecimal sumReservedRefundAmountByOrder(Long orderId, String tenantId, String storeId) {
+        BigDecimal sum = mapper.sumReservedRefundByOrder(orderId, toLong(tenantId), toLong(storeId));
+        return sum == null ? BigDecimal.ZERO : sum;
+    }
+
+    @Override
+    public BigDecimal sumApprovedRefundAmountByOrder(Long orderId, String tenantId, String storeId) {
+        BigDecimal sum = mapper.sumApprovedRefundByOrder(orderId, toLong(tenantId), toLong(storeId));
+        return sum == null ? BigDecimal.ZERO : sum;
+    }
+
+    @Override
     public BigDecimal sumPaidAmountByDate(String tenantId, String storeId, LocalDate bizDate) {
         BigDecimal sum = mapper.sumPaidByDate(toLong(tenantId), toLong(storeId), bizDate);
         return sum == null ? BigDecimal.ZERO : sum;

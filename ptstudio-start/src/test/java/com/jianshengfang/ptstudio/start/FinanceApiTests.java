@@ -86,7 +86,8 @@ class FinanceApiTests {
                         .header("X-Tenant-Id", "tenant-demo")
                         .header("X-Store-Id", "store-001"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("REFUNDED"));
+                .andExpect(jsonPath("$.status").value("PAID"))
+                .andExpect(jsonPath("$.paidAmount").value(200.00));
 
         mockMvc.perform(get("/api/reconciliations/daily")
                         .param("bizDate", LocalDate.now().toString())
@@ -94,6 +95,63 @@ class FinanceApiTests {
                         .header("X-Store-Id", "store-001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("BALANCED"));
+    }
+
+    @Test
+    void shouldRejectRefundWhenReservedAmountExceedsOrderTotal() throws Exception {
+        long memberId = createMember();
+        long orderId = createOrder(memberId, new BigDecimal("100.00"));
+
+        mockMvc.perform(post("/api/payments/alipay/precreate")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"orderId\":" + orderId + "}"))
+                .andExpect(status().isOk());
+
+        String callbackReq = """
+                {
+                  "orderId": %d,
+                  "channelTradeNo": "ALI-TRADE-0002",
+                  "callbackRaw": "{\"trade_status\":\"TRADE_SUCCESS\"}"
+                }
+                """.formatted(orderId);
+        mockMvc.perform(post("/api/payments/alipay/callback")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(callbackReq))
+                .andExpect(status().isOk());
+
+        String refundReq1 = """
+                {
+                  "orderId": %d,
+                  "refundAmount": 70.00,
+                  "reason": "reason_a"
+                }
+                """.formatted(orderId);
+        mockMvc.perform(post("/api/refunds")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refundReq1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"));
+
+        String refundReq2 = """
+                {
+                  "orderId": %d,
+                  "refundAmount": 40.00,
+                  "reason": "reason_b"
+                }
+                """.formatted(orderId);
+        mockMvc.perform(post("/api/refunds")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refundReq2))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
     }
 
     private long createMember() throws Exception {

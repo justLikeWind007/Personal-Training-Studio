@@ -180,6 +180,28 @@ public class InMemoryFinanceRepository implements FinanceRepository {
     }
 
     @Override
+    public BigDecimal sumReservedRefundAmountByOrder(Long orderId, String tenantId, String storeId) {
+        return store.refundById().values().stream()
+                .filter(r -> r.orderId().equals(orderId)
+                        && r.tenantId().equals(tenantId)
+                        && r.storeId().equals(storeId))
+                .filter(r -> "PENDING".equals(r.status()) || "APPROVED".equals(r.status()))
+                .map(InMemoryFinanceStore.RefundData::refundAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    @Override
+    public BigDecimal sumApprovedRefundAmountByOrder(Long orderId, String tenantId, String storeId) {
+        return store.refundById().values().stream()
+                .filter(r -> r.orderId().equals(orderId)
+                        && r.tenantId().equals(tenantId)
+                        && r.storeId().equals(storeId))
+                .filter(r -> "APPROVED".equals(r.status()))
+                .map(InMemoryFinanceStore.RefundData::refundAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    @Override
     public BigDecimal sumPaidAmountByDate(String tenantId, String storeId, LocalDate bizDate) {
         return store.paymentById().values().stream()
                 .filter(p -> p.tenantId().equals(tenantId) && p.storeId().equals(storeId))
