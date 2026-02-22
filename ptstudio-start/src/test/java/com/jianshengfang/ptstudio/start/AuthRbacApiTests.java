@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -76,5 +77,57 @@ class AuthRbacApiTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(3001))
                 .andExpect(jsonPath("$.roles").isArray());
+    }
+
+    @Test
+    void shouldConfigureRoleButtonsAndGetUserPermissionsWithVersion() throws Exception {
+        mockMvc.perform(get("/api/rbac/permissions/catalog")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.menuKeys").isArray())
+                .andExpect(jsonPath("$.buttonKeys").isArray());
+
+        String configReq = """
+                {
+                  "menuKeys": ["dashboard", "stores", "rbac"],
+                  "buttonKeys": ["store.create", "store.status", "rbac.assign"]
+                }
+                """;
+        mockMvc.perform(put("/api/rbac/roles/STORE_MANAGER/permissions")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(configReq))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roleKey").value("STORE_MANAGER"))
+                .andExpect(jsonPath("$.buttonKeys").isArray());
+
+        String loginBody = """
+                {
+                  "mobile": "13800000002",
+                  "password": "123456"
+                }
+                """;
+        String loginResponse = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001")
+                        .content(loginBody))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String token = objectMapper.readTree(loginResponse).path("token").asText();
+
+        mockMvc.perform(get("/api/rbac/users/1002/permissions")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(1002))
+                .andExpect(jsonPath("$.roles").isArray())
+                .andExpect(jsonPath("$.buttonKeys").isArray())
+                .andExpect(jsonPath("$.version").isNumber());
     }
 }

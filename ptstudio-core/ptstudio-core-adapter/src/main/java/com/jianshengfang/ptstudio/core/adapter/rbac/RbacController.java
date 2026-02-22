@@ -1,9 +1,12 @@
 package com.jianshengfang.ptstudio.core.adapter.rbac;
 
+import com.jianshengfang.ptstudio.core.app.auth.AuthService;
+import com.jianshengfang.ptstudio.core.app.auth.UserIdentity;
 import com.jianshengfang.ptstudio.core.app.rbac.RbacService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import org.springframework.http.HttpHeaders;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,6 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.PutMapping;
 
 import java.util.List;
 import java.util.Set;
@@ -20,10 +25,14 @@ import java.util.Set;
 @Validated
 public class RbacController {
 
-    private final RbacService rbacService;
+    private static final String BEARER_PREFIX = "Bearer ";
 
-    public RbacController(RbacService rbacService) {
+    private final RbacService rbacService;
+    private final AuthService authService;
+
+    public RbacController(RbacService rbacService, AuthService authService) {
         this.rbacService = rbacService;
+        this.authService = authService;
     }
 
     @GetMapping("/roles")
@@ -55,6 +64,41 @@ public class RbacController {
         return new DataScopeResponse(userId, config.type().name(), config.storeIds());
     }
 
+    @GetMapping("/permissions/catalog")
+    public PermissionCatalogResponse permissionCatalog() {
+        RbacService.PermissionCatalog catalog = rbacService.permissionCatalog();
+        return new PermissionCatalogResponse(catalog.menuKeys(), catalog.buttonKeys());
+    }
+
+    @GetMapping("/roles/{roleKey}/permissions")
+    public RolePermissionResponse getRolePermissions(@PathVariable String roleKey) {
+        RbacService.RolePermissionConfig config = rbacService.getRolePermissions(roleKey);
+        return new RolePermissionResponse(config.roleKey(), config.menuKeys(), config.buttonKeys());
+    }
+
+    @PutMapping("/roles/{roleKey}/permissions")
+    public RolePermissionResponse updateRolePermissions(@PathVariable String roleKey,
+                                                        @Valid @RequestBody RolePermissionRequest request) {
+        RbacService.RolePermissionConfig config = rbacService.configureRolePermissions(
+                roleKey, request.menuKeys(), request.buttonKeys());
+        return new RolePermissionResponse(config.roleKey(), config.menuKeys(), config.buttonKeys());
+    }
+
+    @GetMapping("/users/{id}/permissions")
+    public UserPermissionResponse getUserPermissions(@PathVariable("id") Long userId,
+                                                     @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization) {
+        UserIdentity current = authService.currentUser(extractToken(authorization)).orElse(null);
+        Set<String> baseRoles = current != null && userId.equals(current.userId()) ? current.roles() : Set.of();
+        RbacService.UserPermissionSnapshot snapshot = rbacService.getUserPermissions(userId, baseRoles);
+        return new UserPermissionResponse(
+                snapshot.userId(),
+                snapshot.roles(),
+                snapshot.menuKeys(),
+                snapshot.buttonKeys(),
+                snapshot.version()
+        );
+    }
+
     public record RoleAssignmentRequest(@NotEmpty Set<String> roles) {
     }
 
@@ -68,5 +112,35 @@ public class RbacController {
     public record DataScopeResponse(Long userId,
                                     String scopeType,
                                     Set<String> storeIds) {
+    }
+
+    public record PermissionCatalogResponse(Set<String> menuKeys,
+                                            Set<String> buttonKeys) {
+    }
+
+    public record RolePermissionRequest(Set<String> menuKeys,
+                                        Set<String> buttonKeys) {
+    }
+
+    public record RolePermissionResponse(String roleKey,
+                                         Set<String> menuKeys,
+                                         Set<String> buttonKeys) {
+    }
+
+    public record UserPermissionResponse(Long userId,
+                                         Set<String> roles,
+                                         Set<String> menuKeys,
+                                         Set<String> buttonKeys,
+                                         Long version) {
+    }
+
+    private String extractToken(String authorization) {
+        if (authorization == null || authorization.isBlank()) {
+            return null;
+        }
+        if (authorization.startsWith(BEARER_PREFIX)) {
+            return authorization.substring(BEARER_PREFIX.length());
+        }
+        return authorization;
     }
 }
