@@ -2,6 +2,7 @@ package com.jianshengfang.ptstudio.core.app.finance;
 
 import com.jianshengfang.ptstudio.core.app.crm.MemberService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional(readOnly = true)
 public class FinanceService {
 
     private final FinanceRepository financeRepository;
@@ -20,6 +22,7 @@ public class FinanceService {
         this.memberService = memberService;
     }
 
+    @Transactional
     public InMemoryFinanceStore.OrderData createOrder(CreateOrderCommand command) {
         memberService.get(command.memberId(), command.tenantId(), command.storeId())
                 .orElseThrow(() -> new IllegalArgumentException("会员不存在"));
@@ -48,6 +51,7 @@ public class FinanceService {
         return financeRepository.getOrder(orderId, tenantId, storeId);
     }
 
+    @Transactional
     public InMemoryFinanceStore.PaymentData precreateAlipay(Long orderId, String tenantId, String storeId) {
         InMemoryFinanceStore.OrderData order = getOrder(orderId, tenantId, storeId)
                 .orElseThrow(() -> new IllegalArgumentException("订单不存在"));
@@ -67,6 +71,7 @@ public class FinanceService {
         );
     }
 
+    @Transactional
     public InMemoryFinanceStore.PaymentData alipayCallback(PaymentCallbackCommand command) {
         InMemoryFinanceStore.OrderData order = getOrder(command.orderId(), command.tenantId(), command.storeId())
                 .orElseThrow(() -> new IllegalArgumentException("订单不存在"));
@@ -101,6 +106,7 @@ public class FinanceService {
         return paid;
     }
 
+    @Transactional
     public InMemoryFinanceStore.RefundData createRefund(CreateRefundCommand command) {
         InMemoryFinanceStore.OrderData order = getOrder(command.orderId(), command.tenantId(), command.storeId())
                 .orElseThrow(() -> new IllegalArgumentException("订单不存在"));
@@ -135,6 +141,7 @@ public class FinanceService {
         );
     }
 
+    @Transactional
     public InMemoryFinanceStore.RefundData approveRefund(Long refundId,
                                                          String tenantId,
                                                          String storeId,
@@ -175,6 +182,7 @@ public class FinanceService {
         return approved;
     }
 
+    @Transactional
     public InMemoryFinanceStore.RefundData rejectRefund(Long refundId,
                                                         String tenantId,
                                                         String storeId,

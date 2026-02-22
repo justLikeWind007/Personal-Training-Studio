@@ -3,11 +3,13 @@ package com.jianshengfang.ptstudio.core.app.attendance;
 import com.jianshengfang.ptstudio.core.app.schedule.InMemoryScheduleStore;
 import com.jianshengfang.ptstudio.core.app.schedule.ScheduleRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class AttendanceService {
 
     private static final String MAKEUP_CHECKIN_BIZ_TYPE = "MAKEUP_CHECKIN";
@@ -20,6 +22,7 @@ public class AttendanceService {
         this.scheduleRepository = scheduleRepository;
     }
 
+    @Transactional
     public InMemoryAttendanceStore.CheckinData checkin(CheckinCommand command) {
         InMemoryScheduleStore.ReservationData reservation = getBookedReservation(
                 command.reservationId(), command.tenantId(), command.storeId());
@@ -45,6 +48,7 @@ public class AttendanceService {
         return attendanceRepository.listCheckins(tenantId, storeId);
     }
 
+    @Transactional
     public InMemoryAttendanceStore.ConsumptionData consume(ConsumeCommand command) {
         if (command.sessionsDelta() <= 0) {
             throw new IllegalArgumentException("课消次数必须大于0");
@@ -74,6 +78,7 @@ public class AttendanceService {
         return attendanceRepository.listConsumptions(tenantId, storeId);
     }
 
+    @Transactional
     public InMemoryAttendanceStore.ConsumptionData reverse(Long consumptionId,
                                                            String tenantId,
                                                            String storeId,
@@ -87,6 +92,7 @@ public class AttendanceService {
                 existing.id(), tenantId, storeId, "REVERSED", operatorUserId, OffsetDateTime.now());
     }
 
+    @Transactional
     public InMemoryAttendanceStore.ApprovalRequestData submitMakeupApproval(SubmitMakeupApprovalCommand command) {
         InMemoryScheduleStore.ReservationData reservation = getBookedReservation(
                 command.reservationId(), command.tenantId(), command.storeId());
@@ -115,6 +121,7 @@ public class AttendanceService {
         return attendanceRepository.listApprovalRequests(tenantId, storeId, MAKEUP_CHECKIN_BIZ_TYPE, status);
     }
 
+    @Transactional
     public InMemoryAttendanceStore.ApprovalRequestData approveMakeupApproval(ApproveMakeupApprovalCommand command) {
         InMemoryAttendanceStore.ApprovalRequestData approval = attendanceRepository
                 .getApprovalRequest(command.approvalId(), command.tenantId(), command.storeId())
@@ -149,6 +156,7 @@ public class AttendanceService {
         );
     }
 
+    @Transactional
     public InMemoryAttendanceStore.ApprovalRequestData rejectMakeupApproval(RejectMakeupApprovalCommand command) {
         InMemoryAttendanceStore.ApprovalRequestData approval = attendanceRepository
                 .getApprovalRequest(command.approvalId(), command.tenantId(), command.storeId())
