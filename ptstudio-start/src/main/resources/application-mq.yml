@@ -1,0 +1,9 @@
+ptstudio:
+  messaging:
+    reservation:
+      topic: ${PT_RESERVATION_EVENT_TOPIC:ptstudio.reservation.changed}
+      created-tag: ${PT_RESERVATION_CREATED_TAG:reservation_created}
+      canceled-tag: ${PT_RESERVATION_CANCELED_TAG:reservation_canceled}
+
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}

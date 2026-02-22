@@ -63,3 +63,10 @@ SPRING_PROFILES_ACTIVE=mq,mysql mvn -pl ptstudio-start spring-boot:run
 - `PT_RESERVATION_EVENT_TOPIC`（默认 `ptstudio.reservation.changed`）
 - `PT_RESERVATION_CREATED_TAG`（默认 `reservation_created`）
 - `PT_RESERVATION_CANCELED_TAG`（默认 `reservation_canceled`）
+
+## 8. Middleware Full Stack
+
+如需同时启动 `mysql + redis + rocketmq` 联调环境，参考：
+
+- `docs/local-middleware.md`
+- `scripts/middleware_smoke.sh`

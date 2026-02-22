@@ -13,6 +13,11 @@
 - [ ] outbox 事件重试与补偿能力完善
 - [ ] 总部经营 BI 看板上线
 
+## 基础环境
+- [x] 中间件基础环境（MySQL/Redis/RocketMQ）本地 compose 编排
+- [x] 中间件连通性冒烟脚本（`scripts/middleware_smoke.sh`）
+- [x] profile 配置文件（`application-mysql.yml` / `application-redis.yml` / `application-mq.yml`）
+
 ## User Stories 映射
 
 ### US-001 多门店组织管理
