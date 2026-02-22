@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS t_app_store_settings (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  tenant_key VARCHAR(64) NOT NULL,
+  store_key VARCHAR(64) NOT NULL,
+  store_name VARCHAR(128) NOT NULL,
+  business_hours_json JSON NOT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uk_app_store_setting (tenant_key, store_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

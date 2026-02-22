@@ -55,7 +55,7 @@
 - [x] 三类基础报表（总览/到课/财务）
 
 ### 4.8 门店管理
-- [ ] 门店配置（`/api/settings/store`）
+- [x] 门店配置（`/api/settings/store`）
 - [ ] 角色权限配置页面（后端基础已具备）
 - [x] 审计日志查询
 
@@ -127,8 +127,8 @@
 - [x] `GET /api/reports/finance`
 
 ### F.8 系统与审计
-- [ ] `GET /api/settings/store`
-- [ ] `PUT /api/settings/store`
+- [x] `GET /api/settings/store`
+- [x] `PUT /api/settings/store`
 - [x] `GET /api/audit/logs`
 
 ## 6 技术规格（PRD）
