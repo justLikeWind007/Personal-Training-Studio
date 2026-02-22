@@ -1,32 +1,27 @@
 package com.jianshengfang.ptstudio.core.app.commission;
 
-import com.jianshengfang.ptstudio.core.app.schedule.InMemoryScheduleStore;
+import com.jianshengfang.ptstudio.core.app.schedule.ScheduleRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class CommissionService {
 
-    private final InMemoryCommissionStore store;
-    private final InMemoryScheduleStore scheduleStore;
+    private final CommissionRepository commissionRepository;
+    private final ScheduleRepository scheduleRepository;
 
-    public CommissionService(InMemoryCommissionStore store, InMemoryScheduleStore scheduleStore) {
-        this.store = store;
-        this.scheduleStore = scheduleStore;
+    public CommissionService(CommissionRepository commissionRepository, ScheduleRepository scheduleRepository) {
+        this.commissionRepository = commissionRepository;
+        this.scheduleRepository = scheduleRepository;
     }
 
     public List<InMemoryCommissionStore.CommissionRuleData> listRules(String tenantId, String storeId) {
-        return store.ruleById().values().stream()
-                .filter(rule -> rule.tenantId().equals(tenantId) && rule.storeId().equals(storeId))
-                .sorted(Comparator.comparing(InMemoryCommissionStore.CommissionRuleData::id))
-                .toList();
+        return commissionRepository.listRules(tenantId, storeId);
     }
 
     public InMemoryCommissionStore.CommissionRuleData createRule(CreateRuleCommand command) {
@@ -34,42 +29,28 @@ public class CommissionService {
             throw new IllegalArgumentException("提成比例必须在(0,1]区间");
         }
 
-        int nextVersion = store.ruleById().values().stream()
-                .filter(rule -> rule.tenantId().equals(command.tenantId()) && rule.storeId().equals(command.storeId()))
-                .map(InMemoryCommissionStore.CommissionRuleData::version)
-                .max(Integer::compareTo)
-                .orElse(0) + 1;
-
-        long id = store.nextRuleId();
+        int nextVersion = commissionRepository.nextRuleVersion(command.tenantId(), command.storeId());
         OffsetDateTime now = OffsetDateTime.now();
-        InMemoryCommissionStore.CommissionRuleData rule = new InMemoryCommissionStore.CommissionRuleData(
-                id,
+        return commissionRepository.createRule(
                 command.tenantId(),
                 command.storeId(),
                 command.name(),
                 command.calcMode(),
                 command.ratio(),
-                "ACTIVE",
                 nextVersion,
                 command.effectiveFrom(),
                 command.effectiveTo(),
-                now,
                 now
         );
-        store.ruleById().put(id, rule);
-        return rule;
     }
 
     public List<InMemoryCommissionStore.CommissionStatementData> generateStatements(GenerateStatementCommand command) {
-        InMemoryCommissionStore.CommissionRuleData rule = Optional.ofNullable(store.ruleById().get(command.ruleId()))
+        InMemoryCommissionStore.CommissionRuleData rule = commissionRepository
+                .getRule(command.ruleId(), command.tenantId(), command.storeId())
                 .orElseThrow(() -> new IllegalArgumentException("提成规则不存在"));
-        if (!rule.tenantId().equals(command.tenantId()) || !rule.storeId().equals(command.storeId())) {
-            throw new IllegalArgumentException("提成规则不存在");
-        }
 
-        List<Long> coachIds = scheduleStore.coachById().values().stream()
-                .filter(c -> c.tenantId().equals(command.tenantId()) && c.storeId().equals(command.storeId()))
-                .map(InMemoryScheduleStore.CoachData::id)
+        List<Long> coachIds = scheduleRepository.listCoaches(command.tenantId(), command.storeId()).stream()
+                .map(c -> c.id())
                 .sorted()
                 .collect(Collectors.toList());
 
@@ -78,28 +59,17 @@ public class CommissionService {
         }
 
         return coachIds.stream().map(coachId -> {
-            boolean exists = store.statementById().values().stream()
-                    .anyMatch(statement -> statement.tenantId().equals(command.tenantId())
-                            && statement.storeId().equals(command.storeId())
-                            && statement.statementMonth().equals(command.statementMonth())
-                            && statement.coachId().equals(coachId));
-            if (exists) {
-                return store.statementById().values().stream()
-                        .filter(statement -> statement.tenantId().equals(command.tenantId())
-                                && statement.storeId().equals(command.storeId())
-                                && statement.statementMonth().equals(command.statementMonth())
-                                && statement.coachId().equals(coachId))
-                        .findFirst()
-                        .orElseThrow();
+            var existing = commissionRepository.findStatement(
+                    command.tenantId(), command.storeId(), command.statementMonth(), coachId);
+            if (existing.isPresent()) {
+                return existing.get();
             }
 
             BigDecimal grossAmount = BigDecimal.valueOf(1000 + coachId * 100);
             BigDecimal commissionAmount = grossAmount.multiply(rule.ratio())
                     .setScale(2, java.math.RoundingMode.HALF_UP);
-            long statementId = store.nextStatementId();
             OffsetDateTime now = OffsetDateTime.now();
-            InMemoryCommissionStore.CommissionStatementData statement = new InMemoryCommissionStore.CommissionStatementData(
-                    statementId,
+            return commissionRepository.createStatement(
                     command.tenantId(),
                     command.storeId(),
                     command.statementMonth(),
@@ -107,55 +77,26 @@ public class CommissionService {
                     rule.id(),
                     grossAmount,
                     commissionAmount,
-                    "GENERATED",
-                    null,
-                    now,
                     now
             );
-            store.statementById().put(statementId, statement);
-            return statement;
         }).toList();
     }
 
     public InMemoryCommissionStore.CommissionStatementData lockStatement(Long id, String tenantId, String storeId) {
-        InMemoryCommissionStore.CommissionStatementData statement = Optional.ofNullable(store.statementById().get(id))
+        InMemoryCommissionStore.CommissionStatementData statement = commissionRepository.getStatement(id, tenantId, storeId)
                 .orElseThrow(() -> new IllegalArgumentException("提成单不存在"));
-        if (!statement.tenantId().equals(tenantId) || !statement.storeId().equals(storeId)) {
-            throw new IllegalArgumentException("提成单不存在");
-        }
         if (!statement.status().equals("GENERATED")) {
             throw new IllegalArgumentException("当前状态不可锁账");
         }
 
-        OffsetDateTime now = OffsetDateTime.now();
-        InMemoryCommissionStore.CommissionStatementData locked = new InMemoryCommissionStore.CommissionStatementData(
-                statement.id(),
-                statement.tenantId(),
-                statement.storeId(),
-                statement.statementMonth(),
-                statement.coachId(),
-                statement.ruleId(),
-                statement.grossAmount(),
-                statement.commissionAmount(),
-                "LOCKED",
-                now,
-                statement.createdAt(),
-                now
-        );
-        store.statementById().put(locked.id(), locked);
-        return locked;
+        return commissionRepository.lockStatement(id, tenantId, storeId, OffsetDateTime.now());
     }
 
     public List<InMemoryCommissionStore.CommissionStatementData> listStatements(String tenantId,
                                                                                  String storeId,
                                                                                  YearMonth statementMonth,
                                                                                  String status) {
-        return store.statementById().values().stream()
-                .filter(statement -> statement.tenantId().equals(tenantId) && statement.storeId().equals(storeId))
-                .filter(statement -> statementMonth == null || statement.statementMonth().equals(statementMonth))
-                .filter(statement -> status == null || statement.status().equalsIgnoreCase(status))
-                .sorted(Comparator.comparing(InMemoryCommissionStore.CommissionStatementData::id))
-                .toList();
+        return commissionRepository.listStatements(tenantId, storeId, statementMonth, status);
     }
 
     public record CreateRuleCommand(String tenantId,
