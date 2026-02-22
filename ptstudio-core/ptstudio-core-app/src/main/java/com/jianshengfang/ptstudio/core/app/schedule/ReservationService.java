@@ -1,8 +1,10 @@
 package com.jianshengfang.ptstudio.core.app.schedule;
 
 import com.jianshengfang.ptstudio.core.app.crm.MemberService;
+import com.jianshengfang.ptstudio.core.app.schedule.lock.ReservationLockManager;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -14,10 +16,14 @@ public class ReservationService {
 
     private final ScheduleRepository scheduleRepository;
     private final MemberService memberService;
+    private final ReservationLockManager lockManager;
 
-    public ReservationService(ScheduleRepository scheduleRepository, MemberService memberService) {
+    public ReservationService(ScheduleRepository scheduleRepository,
+                              MemberService memberService,
+                              ReservationLockManager lockManager) {
         this.scheduleRepository = scheduleRepository;
         this.memberService = memberService;
+        this.lockManager = lockManager;
     }
 
     public List<InMemoryScheduleStore.SlotData> listAvailableSlots(String tenantId,
@@ -28,37 +34,46 @@ public class ReservationService {
     }
 
     public InMemoryScheduleStore.ReservationData createReservation(CreateReservationCommand command) {
-        memberService.get(command.memberId(), command.tenantId(), command.storeId())
-                .orElseThrow(() -> new IllegalArgumentException("会员不存在"));
-
-        InMemoryScheduleStore.SlotData slot = scheduleRepository.getSlot(command.slotId(), command.tenantId(), command.storeId())
-                .orElseThrow(() -> new IllegalArgumentException("时段不存在"));
-        if (!slot.status().equals("OPEN")) {
-            throw new IllegalArgumentException("该时段不可预约");
+        String lockKey = command.tenantId() + ":" + command.storeId() + ":" + command.slotId();
+        ReservationLockManager.LockToken lockToken = lockManager.tryLock(lockKey, Duration.ofSeconds(5));
+        if (lockToken == null) {
+            throw new IllegalArgumentException("系统繁忙，请稍后重试");
         }
-        if (slot.bookedCount() >= slot.capacity()) {
-            throw new IllegalArgumentException("该时段已约满");
-        }
+        try {
+            memberService.get(command.memberId(), command.tenantId(), command.storeId())
+                    .orElseThrow(() -> new IllegalArgumentException("会员不存在"));
 
-        boolean duplicated = scheduleRepository.existsBookedReservation(
-                command.tenantId(), command.storeId(), command.memberId(), command.slotId());
-        if (duplicated) {
-            throw new IllegalArgumentException("请勿重复预约同一时段");
-        }
+            InMemoryScheduleStore.SlotData slot = scheduleRepository.getSlot(command.slotId(), command.tenantId(), command.storeId())
+                    .orElseThrow(() -> new IllegalArgumentException("时段不存在"));
+            if (!slot.status().equals("OPEN")) {
+                throw new IllegalArgumentException("该时段不可预约");
+            }
+            if (slot.bookedCount() >= slot.capacity()) {
+                throw new IllegalArgumentException("该时段已约满");
+            }
 
-        OffsetDateTime now = OffsetDateTime.now();
-        InMemoryScheduleStore.ReservationData reservation = scheduleRepository.createReservation(
-                command.tenantId(),
-                command.storeId(),
-                command.memberId(),
-                slot.coachId(),
-                slot.id(),
-                "R" + UUID.randomUUID().toString().replace("-", "").substring(0, 16),
-                now
-        );
-        scheduleRepository.updateSlotBookedCount(
-                slot.id(), slot.tenantId(), slot.storeId(), slot.bookedCount() + 1, OffsetDateTime.now());
-        return reservation;
+            boolean duplicated = scheduleRepository.existsBookedReservation(
+                    command.tenantId(), command.storeId(), command.memberId(), command.slotId());
+            if (duplicated) {
+                throw new IllegalArgumentException("请勿重复预约同一时段");
+            }
+
+            OffsetDateTime now = OffsetDateTime.now();
+            InMemoryScheduleStore.ReservationData reservation = scheduleRepository.createReservation(
+                    command.tenantId(),
+                    command.storeId(),
+                    command.memberId(),
+                    slot.coachId(),
+                    slot.id(),
+                    "R" + UUID.randomUUID().toString().replace("-", "").substring(0, 16),
+                    now
+            );
+            scheduleRepository.updateSlotBookedCount(
+                    slot.id(), slot.tenantId(), slot.storeId(), slot.bookedCount() + 1, OffsetDateTime.now());
+            return reservation;
+        } finally {
+            lockManager.unlock(lockToken);
+        }
     }
 
     public List<InMemoryScheduleStore.ReservationData> listReservations(String tenantId,
