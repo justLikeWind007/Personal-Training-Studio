@@ -81,11 +81,11 @@
 - [x] `GET /api/members/{id}/timeline`
 
 ### F.3 套餐与会员资产
-- [ ] `GET /api/packages`
-- [ ] `POST /api/packages`
-- [ ] `PUT /api/packages/{id}`
-- [ ] `GET /api/members/{id}/packages`
-- [ ] `GET /api/members/{id}/package-ledgers`
+- [x] `GET /api/packages`
+- [x] `POST /api/packages`
+- [x] `PUT /api/packages/{id}`
+- [x] `GET /api/members/{id}/packages`
+- [x] `GET /api/members/{id}/package-ledgers`
 
 ### F.4 教练、时段、预约
 - [x] `GET /api/coaches`
