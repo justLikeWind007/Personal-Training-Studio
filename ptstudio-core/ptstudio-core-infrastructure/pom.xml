@@ -15,6 +15,11 @@
     <dependencies>
         <dependency>
             <groupId>com.jianshengfang.ptstudio</groupId>
+            <artifactId>ptstudio-core-app</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jianshengfang.ptstudio</groupId>
             <artifactId>ptstudio-core-domain</artifactId>
             <version>${project.version}</version>
         </dependency>
