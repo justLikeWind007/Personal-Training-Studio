@@ -50,3 +50,16 @@ Optional env:
 - 启动 `docker compose` 的 MySQL
 - 使用 `SPRING_PROFILES_ACTIVE=mysql` 启动服务
 - 检查 `health` / `OpenAPI` / `settings` / `smoke_api.sh`
+
+## 7. Reservation Outbox Event (mq + mysql)
+
+如果需要把预约创建/取消事件写入 `t_outbox_event`，请启用组合 profile：
+
+```bash
+SPRING_PROFILES_ACTIVE=mq,mysql mvn -pl ptstudio-start spring-boot:run
+```
+
+可选环境变量：
+- `PT_RESERVATION_EVENT_TOPIC`（默认 `ptstudio.reservation.changed`）
+- `PT_RESERVATION_CREATED_TAG`（默认 `reservation_created`）
+- `PT_RESERVATION_CANCELED_TAG`（默认 `reservation_canceled`）

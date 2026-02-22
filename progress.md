@@ -138,7 +138,7 @@
 - [x] 核心模块仓储接口化（CRM/排班预约/财务/提成/报表）
 - [x] mysql profile 下对应 MyBatis 持久化实现
 - [x] 签到与课消持久化（已完成仓储接口化与MySQL实现）
-- [~] 预约事件发布器（本地日志占位已完成，RocketMQ 对接待完成）
+- [x] 预约事件发布器（`mq+mysql` profile 已接入 outbox 持久化，支持后续 MQ 消费投递）
 - [x] Redis 锁并发控制（已实现 profile 切换）
 
 ## 9 验收标准（当前对应状态）

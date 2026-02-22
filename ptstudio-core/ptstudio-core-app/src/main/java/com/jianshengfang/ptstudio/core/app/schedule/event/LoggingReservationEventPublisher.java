@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile("!mq")
+@Profile("!mq | !mysql")
 public class LoggingReservationEventPublisher implements ReservationEventPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(LoggingReservationEventPublisher.class);
