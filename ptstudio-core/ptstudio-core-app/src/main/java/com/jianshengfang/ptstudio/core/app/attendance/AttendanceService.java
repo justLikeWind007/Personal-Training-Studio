@@ -1,6 +1,7 @@
 package com.jianshengfang.ptstudio.core.app.attendance;
 
 import com.jianshengfang.ptstudio.core.app.schedule.InMemoryScheduleStore;
+import com.jianshengfang.ptstudio.core.app.schedule.ScheduleRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -11,11 +12,11 @@ import java.util.List;
 public class AttendanceService {
 
     private final InMemoryAttendanceStore attendanceStore;
-    private final InMemoryScheduleStore scheduleStore;
+    private final ScheduleRepository scheduleRepository;
 
-    public AttendanceService(InMemoryAttendanceStore attendanceStore, InMemoryScheduleStore scheduleStore) {
+    public AttendanceService(InMemoryAttendanceStore attendanceStore, ScheduleRepository scheduleRepository) {
         this.attendanceStore = attendanceStore;
-        this.scheduleStore = scheduleStore;
+        this.scheduleRepository = scheduleRepository;
     }
 
     public InMemoryAttendanceStore.CheckinData checkin(CheckinCommand command) {
@@ -132,10 +133,9 @@ public class AttendanceService {
     private InMemoryScheduleStore.ReservationData getBookedReservation(Long reservationId,
                                                                        String tenantId,
                                                                        String storeId) {
-        InMemoryScheduleStore.ReservationData reservation = scheduleStore.reservationById().get(reservationId);
-        if (reservation == null || !reservation.tenantId().equals(tenantId) || !reservation.storeId().equals(storeId)) {
-            throw new IllegalArgumentException("预约不存在");
-        }
+        InMemoryScheduleStore.ReservationData reservation = scheduleRepository
+                .getReservation(reservationId, tenantId, storeId)
+                .orElseThrow(() -> new IllegalArgumentException("预约不存在"));
         if (!reservation.status().equals("BOOKED")) {
             throw new IllegalArgumentException("预约状态不可用于签到/课消");
         }
