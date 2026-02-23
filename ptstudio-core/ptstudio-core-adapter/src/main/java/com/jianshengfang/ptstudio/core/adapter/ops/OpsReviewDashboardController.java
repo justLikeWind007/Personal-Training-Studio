@@ -2,6 +2,7 @@ package com.jianshengfang.ptstudio.core.adapter.ops;
 
 import com.jianshengfang.ptstudio.core.app.context.TenantStoreContext;
 import com.jianshengfang.ptstudio.core.app.context.TenantStoreContextHolder;
+import com.jianshengfang.ptstudio.core.app.ops.OpsReviewArchiveHealthTracker;
 import com.jianshengfang.ptstudio.core.app.ops.OpsReviewDashboardService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -19,9 +20,12 @@ import java.time.LocalDate;
 public class OpsReviewDashboardController {
 
     private final OpsReviewDashboardService opsReviewDashboardService;
+    private final OpsReviewArchiveHealthTracker archiveHealthTracker;
 
-    public OpsReviewDashboardController(OpsReviewDashboardService opsReviewDashboardService) {
+    public OpsReviewDashboardController(OpsReviewDashboardService opsReviewDashboardService,
+                                        OpsReviewArchiveHealthTracker archiveHealthTracker) {
         this.opsReviewDashboardService = opsReviewDashboardService;
+        this.archiveHealthTracker = archiveHealthTracker;
     }
 
     @GetMapping
@@ -38,6 +42,12 @@ public class OpsReviewDashboardController {
     public OpsReviewDashboardService.ArchivedReviewSnapshot latest() {
         TenantStoreContext context = requireContext();
         return opsReviewDashboardService.latest(context.tenantId(), context.storeId());
+    }
+
+    @GetMapping("/archive-health")
+    public OpsReviewArchiveHealthTracker.ArchiveHealthSnapshot archiveHealth() {
+        TenantStoreContext context = requireContext();
+        return archiveHealthTracker.snapshot(context.tenantId(), context.storeId());
     }
 
     @GetMapping("/export")

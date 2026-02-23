@@ -51,6 +51,12 @@ class OpsReviewDashboardApiTests {
                 .andExpect(jsonPath("$.storeId").value("store-001"))
                 .andExpect(jsonPath("$.generatedAt").exists());
 
+        mockMvc.perform(get("/api/ops/review-dashboard/archive-health")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").exists());
+
         mockMvc.perform(get("/api/ops/review-dashboard/export")
                         .header("X-Tenant-Id", "tenant-demo")
                         .header("X-Store-Id", "store-001"))

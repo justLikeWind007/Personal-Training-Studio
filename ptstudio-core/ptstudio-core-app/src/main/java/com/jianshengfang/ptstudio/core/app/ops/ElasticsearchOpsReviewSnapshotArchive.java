@@ -57,12 +57,14 @@ public class ElasticsearchOpsReviewSnapshotArchive implements OpsReviewSnapshotA
     private final AtomicBoolean indexChecked = new AtomicBoolean(false);
 
     private final String esBaseUrl;
+    private final OpsReviewArchiveHealthTracker healthTracker;
 
-    public ElasticsearchOpsReviewSnapshotArchive() {
+    public ElasticsearchOpsReviewSnapshotArchive(OpsReviewArchiveHealthTracker healthTracker) {
         String scheme = System.getenv().getOrDefault("ES_SCHEME", "http");
         String host = System.getenv().getOrDefault("ES_HOST", "127.0.0.1");
         String port = System.getenv().getOrDefault("ES_PORT", "9200");
         this.esBaseUrl = scheme + "://" + host + ":" + port;
+        this.healthTracker = healthTracker;
     }
 
     @Override
@@ -94,9 +96,12 @@ public class ElasticsearchOpsReviewSnapshotArchive implements OpsReviewSnapshotA
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (!isSuccess(response.statusCode())) {
+                healthTracker.markFailure(tenantId, storeId, "WRITE_STATUS_" + response.statusCode());
                 return;
             }
+            healthTracker.markSuccess(tenantId, storeId);
         } catch (Exception ignored) {
+            healthTracker.markFailure(tenantId, storeId, "WRITE_EXCEPTION");
             // ES 不可用时降级，不影响主链路返回
         }
     }
