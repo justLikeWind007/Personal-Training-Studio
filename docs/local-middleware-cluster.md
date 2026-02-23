@@ -38,6 +38,12 @@ docker compose -f docker-compose.cluster.yml up -d
 ./scripts/failover_drill_nacos_cluster.sh
 ```
 
+## 2.4 RocketMQ NameServer 故障演练
+
+```bash
+./scripts/failover_drill_rocketmq_namesrv.sh
+```
+
 ## 3. 适用场景
 
 - 验证 Spring Cloud Alibaba 服务注册在 Nacos 集群下的可用性

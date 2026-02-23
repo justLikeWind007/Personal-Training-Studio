@@ -73,6 +73,7 @@
 - [x] Redis Sentinel 主从切换演练脚本
 - [x] ES 单节点故障演练脚本
 - [x] Nacos 节点故障演练脚本
+- [x] RocketMQ NameServer 故障演练脚本
 - [x] 故障演练手册
 - [x] 演练记录模板
 - [x] 本地集群演练入口
