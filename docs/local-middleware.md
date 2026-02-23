@@ -74,3 +74,7 @@ SPRING_PROFILES_ACTIVE=mysql,redis,mq mvn -pl ptstudio-start spring-boot:run
 - 当前代码中 `mq+mysql` 已用于预约事件 outbox 入库，不依赖 RocketMQ SDK 即可运行。
 - RocketMQ 容器用于 v2 异步投递链路联调与后续演进。
 - ES/Kibana 已纳入本地中间件栈，便于后续运营看板检索与日志分析扩展。
+- 当启用 `redis` profile 时，v4 新增的运营异步任务链路将使用 Redis Stream：
+  - 队列 Stream：`ptstudio:ops:async:queue:{tenantId}:{storeId}`
+  - 死信 Stream：`ptstudio:ops:async:dead:{tenantId}:{storeId}`
+  - 最近分发时间 Key：`ptstudio:ops:async:last-dispatch:{tenantId}:{storeId}`
