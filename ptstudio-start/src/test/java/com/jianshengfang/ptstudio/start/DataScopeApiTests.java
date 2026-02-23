@@ -1,6 +1,7 @@
 package com.jianshengfang.ptstudio.start;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -15,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Tag("security")
 class DataScopeApiTests {
 
     @Autowired
@@ -90,7 +92,7 @@ class DataScopeApiTests {
                 {
                   "storeId": "%s",
                   "storeName": "%s",
-                  "businessHoursJson": "{\"weekdays\":\"09:00-21:00\"}"
+                  "businessHoursJson": "{\\\"weekdays\\\":\\\"09:00-21:00\\\"}"
                 }
                 """.formatted(storeId, storeName);
         mockMvc.perform(post("/api/admin/stores")

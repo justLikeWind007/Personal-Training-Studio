@@ -1,6 +1,7 @@
 package com.jianshengfang.ptstudio.start;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Tag("smoke")
 class AdminPageApiTests {
 
     @Autowired
@@ -21,6 +23,6 @@ class AdminPageApiTests {
     void shouldLoadRbacAdminPage() throws Exception {
         mockMvc.perform(get("/admin/rbac.html"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("角色与按钮级权限配置台")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/api/rbac/roles")));
     }
 }

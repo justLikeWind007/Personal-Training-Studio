@@ -82,13 +82,13 @@ public class RbacController {
     }
 
     @GetMapping("/roles/{roleKey}/permissions")
-    public RolePermissionResponse getRolePermissions(@PathVariable String roleKey) {
+    public RolePermissionResponse getRolePermissions(@PathVariable("roleKey") String roleKey) {
         RbacService.RolePermissionConfig config = rbacService.getRolePermissions(roleKey);
         return new RolePermissionResponse(config.roleKey(), config.menuKeys(), config.buttonKeys());
     }
 
     @PutMapping("/roles/{roleKey}/permissions")
-    public RolePermissionResponse updateRolePermissions(@PathVariable String roleKey,
+    public RolePermissionResponse updateRolePermissions(@PathVariable("roleKey") String roleKey,
                                                         @Valid @RequestBody RolePermissionRequest request) {
         RbacService.RolePermissionConfig config = rbacService.configureRolePermissions(
                 roleKey, request.menuKeys(), request.buttonKeys());
