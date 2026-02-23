@@ -1,0 +1,19 @@
+ptstudio:
+  messaging:
+    reservation:
+      topic: ${PT_RESERVATION_EVENT_TOPIC:ptstudio.reservation.changed}
+      created-tag: ${PT_RESERVATION_CREATED_TAG:reservation_created}
+      canceled-tag: ${PT_RESERVATION_CANCELED_TAG:reservation_canceled}
+    consumption:
+      topic: ${PT_CONSUMPTION_EVENT_TOPIC:ptstudio.consumption.changed}
+      consumed-tag: ${PT_CONSUMPTION_CONSUMED_TAG:consumption_consumed}
+      reversed-tag: ${PT_CONSUMPTION_REVERSED_TAG:consumption_reversed}
+    outbox:
+      dispatch-interval-ms: ${PT_OUTBOX_DISPATCH_INTERVAL_MS:5000}
+      batch-size: ${PT_OUTBOX_BATCH_SIZE:50}
+      max-retry: ${PT_OUTBOX_MAX_RETRY:5}
+      retry-delay-seconds: ${PT_OUTBOX_RETRY_DELAY_SECONDS:30}
+      fail-tags: ${PT_OUTBOX_FAIL_TAGS:}
+
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}

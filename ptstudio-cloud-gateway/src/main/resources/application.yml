@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: ptstudio-cloud-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: ptstudio-ops-service
+          uri: lb://ptstudio-ops-service
+          predicates:
+            - Path=/api/ops/**
+        - id: ptstudio-biz-service
+          uri: lb://ptstudio-biz-service
+          predicates:
+            - Path=/api/**,/v3/api-docs/**,/swagger-ui/**
+
+server:
+  port: ${SERVER_PORT:8080}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://127.0.0.1:8761/eureka/}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
