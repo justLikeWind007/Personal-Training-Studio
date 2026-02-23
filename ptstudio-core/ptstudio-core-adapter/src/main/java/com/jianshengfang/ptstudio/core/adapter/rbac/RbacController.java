@@ -11,6 +11,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,6 +39,16 @@ public class RbacController {
     @GetMapping("/roles")
     public List<String> listRoles() {
         return rbacService.listSystemRoles();
+    }
+
+    @GetMapping("/roles/catalog")
+    public List<RoleCatalogItemResponse> listRoleCatalog(@RequestParam(name = "level", required = false) String level) {
+        RbacService.RoleLevel roleLevel = level == null || level.isBlank()
+                ? null
+                : RbacService.RoleLevel.valueOf(level);
+        return rbacService.listRoleDefinitions(roleLevel).stream()
+                .map(item -> new RoleCatalogItemResponse(item.roleKey(), item.displayName(), item.level().name()))
+                .toList();
     }
 
     @PostMapping("/users/{id}/roles")
@@ -103,6 +114,11 @@ public class RbacController {
     }
 
     public record RoleAssignmentResponse(Long userId, Set<String> roles) {
+    }
+
+    public record RoleCatalogItemResponse(String roleKey,
+                                          String displayName,
+                                          String level) {
     }
 
     public record DataScopeRequest(@NotBlank String scopeType,

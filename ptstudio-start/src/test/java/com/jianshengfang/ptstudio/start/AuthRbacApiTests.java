@@ -63,6 +63,14 @@ class AuthRbacApiTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0]").value("STORE_MANAGER"));
 
+        mockMvc.perform(get("/api/rbac/roles/catalog")
+                        .param("level", "HEADQUARTER")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].level").value("HEADQUARTER"))
+                .andExpect(jsonPath("$[0].roleKey").value("HQ_ADMIN"));
+
         String req = """
                 {
                   "roles": ["SALES", "RECEPTION"]

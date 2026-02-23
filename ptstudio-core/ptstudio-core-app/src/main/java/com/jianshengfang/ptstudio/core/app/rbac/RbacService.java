@@ -16,6 +16,7 @@ public class RbacService {
     private final Map<Long, Set<String>> roleByUserId = new ConcurrentHashMap<>();
     private final Map<Long, DataScopeConfig> dataScopeByUserId = new ConcurrentHashMap<>();
     private final Map<String, RolePermissionConfig> permissionByRole = new ConcurrentHashMap<>();
+    private final Map<String, RoleDefinition> roleDefinitionByKey = new ConcurrentHashMap<>();
     private final AtomicLong permissionVersion = new AtomicLong(1L);
 
     public RbacService() {
@@ -46,10 +47,44 @@ public class RbacService {
                 Set.of("checkin", "reservation"),
                 Set.of("checkin.create", "consumption.create", "consumption.reverse")
         ));
+        permissionByRole.put("HQ_ADMIN", new RolePermissionConfig(
+                "HQ_ADMIN",
+                Set.of("dashboard", "stores", "rbac", "finance", "reconciliation", "report"),
+                Set.of("store.create", "store.status", "rbac.assign", "rbac.dataScope", "reconcile.export")
+        ));
+        permissionByRole.put("HQ_FINANCE_ANALYST", new RolePermissionConfig(
+                "HQ_FINANCE_ANALYST",
+                Set.of("finance", "reconciliation", "report"),
+                Set.of("refund.approve", "refund.reject", "reconcile.export")
+        ));
+        permissionByRole.put("HQ_AUDITOR", new RolePermissionConfig(
+                "HQ_AUDITOR",
+                Set.of("reconciliation", "report"),
+                Set.of("reconcile.export")
+        ));
+        roleDefinitionByKey.put("STORE_MANAGER", new RoleDefinition("STORE_MANAGER", "门店店长", RoleLevel.STORE));
+        roleDefinitionByKey.put("FINANCE", new RoleDefinition("FINANCE", "门店财务", RoleLevel.STORE));
+        roleDefinitionByKey.put("SALES", new RoleDefinition("SALES", "门店销售", RoleLevel.STORE));
+        roleDefinitionByKey.put("COACH", new RoleDefinition("COACH", "门店教练", RoleLevel.STORE));
+        roleDefinitionByKey.put("RECEPTION", new RoleDefinition("RECEPTION", "门店前台", RoleLevel.STORE));
+        roleDefinitionByKey.put("HQ_ADMIN", new RoleDefinition("HQ_ADMIN", "总部管理员", RoleLevel.HEADQUARTER));
+        roleDefinitionByKey.put("HQ_FINANCE_ANALYST", new RoleDefinition("HQ_FINANCE_ANALYST", "总部财务分析", RoleLevel.HEADQUARTER));
+        roleDefinitionByKey.put("HQ_AUDITOR", new RoleDefinition("HQ_AUDITOR", "总部稽核员", RoleLevel.HEADQUARTER));
     }
 
     public List<String> listSystemRoles() {
-        return List.of("STORE_MANAGER", "FINANCE", "SALES", "COACH", "RECEPTION");
+        return List.of(
+                "STORE_MANAGER", "FINANCE", "SALES", "COACH", "RECEPTION",
+                "HQ_ADMIN", "HQ_FINANCE_ANALYST", "HQ_AUDITOR"
+        );
+    }
+
+    public List<RoleDefinition> listRoleDefinitions(RoleLevel level) {
+        return listSystemRoles().stream()
+                .map(roleKey -> roleDefinitionByKey.getOrDefault(
+                        roleKey, new RoleDefinition(roleKey, roleKey, RoleLevel.STORE)))
+                .filter(definition -> level == null || definition.level() == level)
+                .toList();
     }
 
     public Set<String> assignRoles(Long userId, Set<String> roles) {
@@ -160,10 +195,18 @@ public class RbacService {
     public record PermissionCatalog(Set<String> menuKeys, Set<String> buttonKeys) {
     }
 
+    public record RoleDefinition(String roleKey, String displayName, RoleLevel level) {
+    }
+
     public enum DataScopeType {
         TENANT_ALL,
         STORE_ASSIGNED,
         SELF_ONLY
+    }
+
+    public enum RoleLevel {
+        HEADQUARTER,
+        STORE
     }
 
     public record DataScopeConfig(DataScopeType type, Set<String> storeIds) {
