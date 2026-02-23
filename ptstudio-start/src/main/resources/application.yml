@@ -20,3 +20,8 @@ logging:
 
 server:
   port: 8080
+
+security:
+  internal-token:
+    required: ${INTERNAL_TOKEN_REQUIRED:false}
+    value: ${INTERNAL_TOKEN_VALUE:}

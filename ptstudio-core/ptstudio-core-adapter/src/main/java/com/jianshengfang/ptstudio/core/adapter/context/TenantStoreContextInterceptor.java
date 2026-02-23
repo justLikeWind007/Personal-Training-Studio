@@ -10,6 +10,7 @@ import com.jianshengfang.ptstudio.core.app.settings.StoreSettingsService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -24,12 +25,17 @@ public class TenantStoreContextInterceptor implements HandlerInterceptor {
     private static final String REQUEST_ID_HEADER = "X-Request-Id";
     private static final String TRACE_ID_HEADER = "X-Trace-Id";
     private static final String B3_TRACE_ID_HEADER = "X-B3-TraceId";
+    private static final String INTERNAL_TOKEN_HEADER = "X-Internal-Token";
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final StoreSettingsService storeSettingsService;
     private final AuthService authService;
     private final RbacService rbacService;
     private final AuditLogService auditLogService;
+    @Value("${security.internal-token.required:false}")
+    private boolean internalTokenRequired;
+    @Value("${security.internal-token.value:}")
+    private String internalTokenValue;
 
     public TenantStoreContextInterceptor(StoreSettingsService storeSettingsService,
                                          AuthService authService,
@@ -53,6 +59,7 @@ public class TenantStoreContextInterceptor implements HandlerInterceptor {
         );
         response.setHeader(REQUEST_ID_HEADER, requestId);
         response.setHeader(TRACE_ID_HEADER, traceId);
+        validateInternalToken(request);
         if (tenantId == null || tenantId.isBlank() || storeId == null || storeId.isBlank()) {
             throw new IllegalArgumentException("缺少租户门店上下文请求头");
         }
@@ -123,6 +130,23 @@ public class TenantStoreContextInterceptor implements HandlerInterceptor {
             return authorization.substring(BEARER_PREFIX.length());
         }
         return authorization;
+    }
+
+    private void validateInternalToken(HttpServletRequest request) {
+        if (!internalTokenRequired) {
+            return;
+        }
+        String uri = request.getRequestURI();
+        if (uri == null || !uri.startsWith("/api/")) {
+            return;
+        }
+        String token = request.getHeader(INTERNAL_TOKEN_HEADER);
+        if (internalTokenValue == null || internalTokenValue.isBlank()) {
+            throw new IllegalArgumentException("服务内部令牌未配置");
+        }
+        if (token == null || token.isBlank() || !internalTokenValue.equals(token)) {
+            throw new IllegalArgumentException("缺少或错误的服务内部令牌");
+        }
     }
 
     private String firstNonBlank(String... values) {

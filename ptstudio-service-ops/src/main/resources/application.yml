@@ -36,3 +36,8 @@ management:
 logging:
   pattern:
     level: "%5p [traceId:%X{traceId:-} requestId:%X{requestId:-} tenantId:%X{tenantId:-} storeId:%X{storeId:-}]"
+
+security:
+  internal-token:
+    required: ${INTERNAL_TOKEN_REQUIRED:false}
+    value: ${INTERNAL_TOKEN_VALUE:}
