@@ -83,6 +83,8 @@ SPRING_PROFILES_ACTIVE=mysql,redis,mq,es mvn -pl ptstudio-start spring-boot:run
   - `ES_SCHEME` (default `http`)
 - Spring Cloud Alibaba:
   - `NACOS_SERVER_ADDR` (default `127.0.0.1:8848`)
+  - `SENTINEL_DASHBOARD` (default `127.0.0.1:8718`)
+  - `SENTINEL_TRANSPORT_PORT` (gateway default `8719`, ops default `8720`, biz default `8721`)
 
 ## 6. Notes
 

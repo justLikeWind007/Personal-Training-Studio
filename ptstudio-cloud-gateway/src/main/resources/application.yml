@@ -15,6 +15,18 @@ spring:
           uri: lb://ptstudio-biz-service
           predicates:
             - Path=/api/**,/v3/api-docs/**,/swagger-ui/**
+    sentinel:
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD:127.0.0.1:8718}
+        port: ${SENTINEL_TRANSPORT_PORT:8719}
+      datasource:
+        gw-flow:
+          nacos:
+            server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+            group-id: SENTINEL_GROUP
+            data-id: ptstudio-cloud-gateway-gw-flow-rules
+            data-type: json
+            rule-type: gw-flow
 
 server:
   port: ${SERVER_PORT:8080}

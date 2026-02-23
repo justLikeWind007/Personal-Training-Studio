@@ -7,6 +7,18 @@ spring:
     nacos:
       discovery:
         server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+    sentinel:
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD:127.0.0.1:8718}
+        port: ${SENTINEL_TRANSPORT_PORT:8720}
+      datasource:
+        flow:
+          nacos:
+            server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+            group-id: SENTINEL_GROUP
+            data-id: ptstudio-ops-service-flow-rules
+            data-type: json
+            rule-type: flow
 
 server:
   port: ${SERVER_PORT:8082}

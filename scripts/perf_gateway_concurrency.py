@@ -102,6 +102,7 @@ def main():
     latencies = []
     success = 0
     failed = 0
+    limited = 0
 
     t0 = time.time()
     with ThreadPoolExecutor(max_workers=CONCURRENCY) as pool:
@@ -111,6 +112,8 @@ def main():
             latencies.append(latency)
             if status == 200:
                 success += 1
+            elif status == 429:
+                limited += 1
             else:
                 failed += 1
     elapsed = time.time() - t0
@@ -122,8 +125,9 @@ def main():
         "concurrency": CONCURRENCY,
         "success": success,
         "failed": failed,
+        "limited": limited,
         "elapsedSeconds": round(elapsed, 3),
-        "throughputRps": round(success / elapsed, 2) if elapsed > 0 else 0,
+        "throughputRps": round((success + limited) / elapsed, 2) if elapsed > 0 else 0,
         "latencyMs": {
             "avg": round(sum(latencies) / len(latencies), 2) if latencies else 0,
             "p95": round(p95(latencies), 2),

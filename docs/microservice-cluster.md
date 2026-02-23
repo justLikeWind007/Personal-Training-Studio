@@ -16,6 +16,9 @@
 - 控制器拆分：
   - `ptstudio-biz-service` 排除 `core.adapter.ops` 控制器
   - `ptstudio-ops-service` 仅保留 `core.adapter.ops` 控制器
+- 流控组件：
+  - 已接入 Spring Cloud Alibaba Sentinel（gateway/biz/ops）
+  - 网关与 ops 服务的流控规则存储在 Nacos `SENTINEL_GROUP`
 
 ## 3. 本地启动
 
@@ -41,13 +44,19 @@
 
 测试链路：`Gateway -> Ops Service -> Async Queue`
 
+压测前可先下发限流规则：
+
+```bash
+./scripts/nacos_sentinel_flow_rule.sh
+```
+
 ```bash
 python3 scripts/perf_gateway_concurrency.py
 ```
 
 输出指标：
 - 总请求数、并发度
-- 成功/失败数
+- 成功/限流/失败数
 - 平均延迟、P95、最大延迟
 - 吞吐（RPS）
 - 队列消费闭环结果
