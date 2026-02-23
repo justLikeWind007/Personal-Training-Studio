@@ -3,7 +3,7 @@
 ## 1. Start middleware stack
 
 ```bash
-docker compose up -d mysql redis rocketmq-namesrv rocketmq-broker rocketmq-dashboard elasticsearch kibana nacos
+docker compose up -d mysql redis rocketmq-namesrv rocketmq-broker rocketmq-dashboard elasticsearch kibana nacos sentinel-dashboard
 ```
 
 Services:
@@ -15,6 +15,7 @@ Services:
 - Elasticsearch: `http://127.0.0.1:9200`
 - Kibana: `http://127.0.0.1:5601`
 - Nacos: `http://127.0.0.1:8848/nacos`
+- Sentinel Dashboard: `http://127.0.0.1:8718`
 
 ## 2. Middleware smoke check
 

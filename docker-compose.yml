@@ -103,6 +103,14 @@ services:
       - "8848:8848"
     volumes:
       - ptstudio_nacos_data:/home/nacos/data
+  sentinel-dashboard:
+    image: bladex/sentinel-dashboard:1.8.6
+    container_name: ptstudio-sentinel-dashboard
+    restart: unless-stopped
+    environment:
+      - SERVER_PORT=8718
+    ports:
+      - "8718:8718"
 volumes:
   ptstudio_mysql_data:
   ptstudio_redis_data:
