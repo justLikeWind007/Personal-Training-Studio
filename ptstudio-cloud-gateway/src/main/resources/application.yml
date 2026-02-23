@@ -35,4 +35,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  pattern:
+    level: "%5p [traceId:%X{traceId:-} requestId:%X{requestId:-} tenantId:%X{tenantId:-} storeId:%X{storeId:-}]"

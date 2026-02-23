@@ -41,6 +41,12 @@
 ./scripts/microservice_cluster_smoke.sh
 ```
 
+可观测性巡检：
+
+```bash
+./scripts/observability_smoke.sh
+```
+
 中间件集群拓扑（开发/测试）：
 
 ```bash
@@ -49,6 +55,7 @@ docker compose -f docker-compose.cluster.yml up -d
 ```
 
 集群说明文档：`docs/local-middleware-cluster.md`
+观测基线文档：`docs/生产观测与告警基线_v1.md`
 
 ## 4. 高并发链路测试
 

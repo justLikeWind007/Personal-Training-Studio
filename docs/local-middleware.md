@@ -29,6 +29,12 @@ Services:
 ./scripts/nacos_sentinel_flow_rule.sh
 ```
 
+## 2.3 Observability smoke
+
+```bash
+./scripts/observability_smoke.sh
+```
+
 ## 2.1 ES review snapshot business smoke
 
 ```bash
