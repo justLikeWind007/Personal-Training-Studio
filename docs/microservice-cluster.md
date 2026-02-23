@@ -19,6 +19,7 @@
 - 流控组件：
   - 已接入 Spring Cloud Alibaba Sentinel（gateway/biz/ops）
   - 网关与 ops 服务的流控规则存储在 Nacos `SENTINEL_GROUP`
+  - 网关限流返回统一 JSON（`code=GATEWAY_FLOW_LIMITED`）
 
 ## 3. 本地启动
 
@@ -50,6 +51,12 @@
 ./scripts/nacos_sentinel_flow_rule.sh
 ```
 
+一键生成“限流前后对比报告”：
+
+```bash
+./scripts/perf_gateway_baseline_and_limited.sh
+```
+
 ```bash
 python3 scripts/perf_gateway_concurrency.py
 ```
@@ -60,6 +67,7 @@ python3 scripts/perf_gateway_concurrency.py
 - 平均延迟、P95、最大延迟
 - 吞吐（RPS）
 - 队列消费闭环结果
+- 报告脚本输出 `gateway_compare_report.md`
 
 ## 5. 当前约束
 

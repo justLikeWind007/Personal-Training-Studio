@@ -23,6 +23,12 @@ Services:
 ./scripts/middleware_smoke.sh
 ```
 
+## 2.2 Sentinel rule publish (Nacos)
+
+```bash
+./scripts/nacos_sentinel_flow_rule.sh
+```
+
 ## 2.1 ES review snapshot business smoke
 
 ```bash

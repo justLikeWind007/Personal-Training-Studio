@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import json
 import time
 import urllib.request
@@ -97,7 +98,29 @@ def p95(values):
     return data[idx]
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="gateway->ops async queue 并发压测")
+    parser.add_argument("--base-url", default=BASE_URL)
+    parser.add_argument("--tenant-id", default=TENANT_ID)
+    parser.add_argument("--store-id", default=STORE_ID)
+    parser.add_argument("--total", type=int, default=TOTAL)
+    parser.add_argument("--concurrency", type=int, default=CONCURRENCY)
+    parser.add_argument("--timeout", type=int, default=TIMEOUT)
+    parser.add_argument("--output", default="", help="将结果写入 json 文件")
+    parser.add_argument("--expect-limited-min", type=int, default=0, help="期望最小限流数量")
+    return parser.parse_args()
+
+
 def main():
+    global BASE_URL, TENANT_ID, STORE_ID, TOTAL, CONCURRENCY, TIMEOUT
+    args = parse_args()
+    BASE_URL = args.base_url
+    TENANT_ID = args.tenant_id
+    STORE_ID = args.store_id
+    TOTAL = args.total
+    CONCURRENCY = args.concurrency
+    TIMEOUT = args.timeout
+
     print(f"start load test: total={TOTAL}, concurrency={CONCURRENCY}")
     latencies = []
     success = 0
@@ -136,6 +159,15 @@ def main():
         "consume": consume_result,
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+        print(f"result saved: {args.output}")
+
+    if args.expect_limited_min > 0 and limited < args.expect_limited_min:
+        raise SystemExit(
+            f"limited count {limited} below expected minimum {args.expect_limited_min}"
+        )
 
 
 if __name__ == "__main__":
