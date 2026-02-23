@@ -20,6 +20,12 @@ docker compose -f docker-compose.cluster.yml up -d
 ./scripts/middleware_cluster_smoke.sh
 ```
 
+## 2.1 Redis Sentinel 切换演练
+
+```bash
+./scripts/failover_drill_redis_sentinel.sh
+```
+
 ## 3. 适用场景
 
 - 验证 Spring Cloud Alibaba 服务注册在 Nacos 集群下的可用性
