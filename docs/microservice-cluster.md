@@ -125,6 +125,10 @@ python3 scripts/perf_chain_text_report.py \
 - 队列消费闭环结果
 - 报告脚本输出 `gateway_compare_report.md`
 - 文字报告输出 `docs/链路高并发压测报告_v1.md`
+- 故障注入报告输出 `docs/故障注入压测报告_v1.md`
+- 长稳压测报告输出 `docs/长稳压测报告_v1.md`
+
+压测治理手册：`docs/高并发压测治理手册_v1.md`
 
 ## 5. 当前约束
 
