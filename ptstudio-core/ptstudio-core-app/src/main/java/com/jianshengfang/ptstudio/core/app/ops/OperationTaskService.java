@@ -17,12 +17,15 @@ import java.util.concurrent.atomic.AtomicLong;
 public class OperationTaskService {
 
     private final MemberService memberService;
+    private final OpsAsyncQueueService opsAsyncQueueService;
     private final Map<String, TaskRule> ruleByKey = new ConcurrentHashMap<>();
     private final Map<String, Map<String, OperationTask>> taskByNoByKey = new ConcurrentHashMap<>();
     private final AtomicLong taskSeq = new AtomicLong(0L);
 
-    public OperationTaskService(MemberService memberService) {
+    public OperationTaskService(MemberService memberService,
+                                OpsAsyncQueueService opsAsyncQueueService) {
         this.memberService = memberService;
+        this.opsAsyncQueueService = opsAsyncQueueService;
     }
 
     @Transactional
@@ -82,6 +85,7 @@ public class OperationTaskService {
                     OffsetDateTime.now()
             );
             putTask(task);
+            opsAsyncQueueService.enqueueTaskEvent(tenantId, storeId, task.taskNo(), task.title(), operatorUserId);
             created.add(task);
         }
 
@@ -105,6 +109,7 @@ public class OperationTaskService {
                     OffsetDateTime.now()
             );
             putTask(fallback);
+            opsAsyncQueueService.enqueueTaskEvent(tenantId, storeId, fallback.taskNo(), fallback.title(), operatorUserId);
             created.add(fallback);
         }
 
@@ -139,6 +144,7 @@ public class OperationTaskService {
                 OffsetDateTime.now()
         );
         putTask(task);
+        opsAsyncQueueService.enqueueTaskEvent(tenantId, storeId, task.taskNo(), task.title(), operatorUserId);
         return task;
     }
 
