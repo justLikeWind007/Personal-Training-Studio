@@ -74,6 +74,7 @@ docker compose -f docker-compose.cluster.yml up -d
 故障演练手册：`docs/故障演练手册_v1.md`
 Redis 演练脚本：`scripts/failover_drill_redis_sentinel.sh`
 ES 演练脚本：`scripts/failover_drill_es_cluster.sh`
+Nacos 演练脚本：`scripts/failover_drill_nacos_cluster.sh`
 安全基线文档：`docs/安全基线与最小信任模型_v1.md`
 安全巡检清单：`docs/安全巡检清单_v1.md`
 

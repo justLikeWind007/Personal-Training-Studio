@@ -32,6 +32,12 @@ docker compose -f docker-compose.cluster.yml up -d
 ./scripts/failover_drill_es_cluster.sh
 ```
 
+## 2.3 Nacos 节点故障演练
+
+```bash
+./scripts/failover_drill_nacos_cluster.sh
+```
+
 ## 3. 适用场景
 
 - 验证 Spring Cloud Alibaba 服务注册在 Nacos 集群下的可用性
