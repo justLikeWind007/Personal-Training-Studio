@@ -84,6 +84,7 @@ Nacos 演练脚本：`scripts/failover_drill_nacos_cluster.sh`
 RocketMQ 演练脚本：`scripts/failover_drill_rocketmq_namesrv.sh`
 安全基线文档：`docs/安全基线与最小信任模型_v1.md`
 安全巡检清单：`docs/安全巡检清单_v1.md`
+中间件生产参数基线：`docs/中间件生产参数基线_v1.md`
 
 ## 4. 高并发链路测试
 
