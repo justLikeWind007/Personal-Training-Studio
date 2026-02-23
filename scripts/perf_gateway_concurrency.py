@@ -144,8 +144,10 @@ def main():
     consume_result = consume_until_empty()
 
     result = {
+        "baseUrl": BASE_URL,
         "total": TOTAL,
         "concurrency": CONCURRENCY,
+        "timeout": TIMEOUT,
         "success": success,
         "failed": failed,
         "limited": limited,
