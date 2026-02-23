@@ -43,6 +43,14 @@ class OpsReviewDashboardApiTests {
                 .andExpect(jsonPath("$.completionRate", greaterThan(0.0)))
                 .andExpect(jsonPath("$.conversionRate", greaterThan(0.0)));
 
+        mockMvc.perform(get("/api/ops/review-dashboard/latest")
+                        .header("X-Tenant-Id", "tenant-demo")
+                        .header("X-Store-Id", "store-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tenantId").value("tenant-demo"))
+                .andExpect(jsonPath("$.storeId").value("store-001"))
+                .andExpect(jsonPath("$.generatedAt").exists());
+
         mockMvc.perform(get("/api/ops/review-dashboard/export")
                         .header("X-Tenant-Id", "tenant-demo")
                         .header("X-Store-Id", "store-001"))

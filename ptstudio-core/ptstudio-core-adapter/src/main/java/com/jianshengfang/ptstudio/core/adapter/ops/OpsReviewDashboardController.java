@@ -34,6 +34,12 @@ public class OpsReviewDashboardController {
         return opsReviewDashboardService.snapshot(context.tenantId(), context.storeId(), dateFrom, dateTo);
     }
 
+    @GetMapping("/latest")
+    public OpsReviewDashboardService.ArchivedReviewSnapshot latest() {
+        TenantStoreContext context = requireContext();
+        return opsReviewDashboardService.latest(context.tenantId(), context.storeId());
+    }
+
     @GetMapping("/export")
     public ResponseEntity<String> export(
             @RequestParam(name = "dateFrom", required = false)

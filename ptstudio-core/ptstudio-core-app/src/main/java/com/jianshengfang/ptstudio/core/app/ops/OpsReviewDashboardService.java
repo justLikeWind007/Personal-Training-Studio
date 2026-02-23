@@ -16,11 +16,14 @@ public class OpsReviewDashboardService {
 
     private final OperationTaskService operationTaskService;
     private final TouchRecordService touchRecordService;
+    private final OpsReviewSnapshotArchive snapshotArchive;
 
     public OpsReviewDashboardService(OperationTaskService operationTaskService,
-                                     TouchRecordService touchRecordService) {
+                                     TouchRecordService touchRecordService,
+                                     OpsReviewSnapshotArchive snapshotArchive) {
         this.operationTaskService = operationTaskService;
         this.touchRecordService = touchRecordService;
+        this.snapshotArchive = snapshotArchive;
     }
 
     public ReviewSnapshot snapshot(String tenantId,
@@ -55,7 +58,7 @@ public class OpsReviewDashboardService {
 
         BigDecimal avgHandleHours = averageHandleHours(tasks);
 
-        return new ReviewSnapshot(
+        ReviewSnapshot snapshot = new ReviewSnapshot(
                 storeId,
                 from,
                 to,
@@ -69,6 +72,8 @@ public class OpsReviewDashboardService {
                 conversionRate,
                 avgHandleHours
         );
+        snapshotArchive.saveLatest(tenantId, storeId, snapshot);
+        return snapshot;
     }
 
     public String exportCsv(String tenantId,
@@ -118,6 +123,11 @@ public class OpsReviewDashboardService {
                 .divide(BigDecimal.valueOf(doneTasks.size()), 2, RoundingMode.HALF_UP);
     }
 
+    public ArchivedReviewSnapshot latest(String tenantId, String storeId) {
+        return snapshotArchive.latest(tenantId, storeId)
+                .orElseThrow(() -> new IllegalArgumentException("暂无复盘快照，请先调用复盘统计接口"));
+    }
+
     public record ReviewSnapshot(String storeId,
                                  LocalDate dateFrom,
                                  LocalDate dateTo,
@@ -130,5 +140,21 @@ public class OpsReviewDashboardService {
                                  BigDecimal overdueRate,
                                  BigDecimal conversionRate,
                                  BigDecimal avgHandleHours) {
+    }
+
+    public record ArchivedReviewSnapshot(String tenantId,
+                                         String storeId,
+                                         LocalDate dateFrom,
+                                         LocalDate dateTo,
+                                         Integer totalTasks,
+                                         Integer doneTasks,
+                                         Integer overdueTasks,
+                                         Integer touchCount,
+                                         Integer convertedCount,
+                                         BigDecimal completionRate,
+                                         BigDecimal overdueRate,
+                                         BigDecimal conversionRate,
+                                         BigDecimal avgHandleHours,
+                                         OffsetDateTime generatedAt) {
     }
 }

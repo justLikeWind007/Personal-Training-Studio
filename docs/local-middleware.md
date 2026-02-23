@@ -36,7 +36,7 @@ Services:
 ## 4. Run app with combined profiles
 
 ```bash
-SPRING_PROFILES_ACTIVE=mysql,redis,mq mvn -pl ptstudio-start spring-boot:run
+SPRING_PROFILES_ACTIVE=mysql,redis,mq,es mvn -pl ptstudio-start spring-boot:run
 ```
 
 ## 5. Environment variables
@@ -78,3 +78,6 @@ SPRING_PROFILES_ACTIVE=mysql,redis,mq mvn -pl ptstudio-start spring-boot:run
   - 队列 Stream：`ptstudio:ops:async:queue:{tenantId}:{storeId}`
   - 死信 Stream：`ptstudio:ops:async:dead:{tenantId}:{storeId}`
   - 最近分发时间 Key：`ptstudio:ops:async:last-dispatch:{tenantId}:{storeId}`
+- 当启用 `es` profile 时，运营复盘快照会写入 ES 索引：
+  - 索引：`ptstudio_ops_review_snapshot`
+  - 接口：`GET /api/ops/review-dashboard/latest` 返回最近一次归档快照
