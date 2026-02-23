@@ -1,5 +1,6 @@
 package com.jianshengfang.ptstudio.core.app.attendance;
 
+import com.jianshengfang.ptstudio.core.app.attendance.event.ConsumptionEventPublisher;
 import com.jianshengfang.ptstudio.core.app.schedule.InMemoryScheduleStore;
 import com.jianshengfang.ptstudio.core.app.schedule.ScheduleRepository;
 import org.springframework.stereotype.Service;
@@ -16,10 +17,14 @@ public class AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
     private final ScheduleRepository scheduleRepository;
+    private final ConsumptionEventPublisher consumptionEventPublisher;
 
-    public AttendanceService(AttendanceRepository attendanceRepository, ScheduleRepository scheduleRepository) {
+    public AttendanceService(AttendanceRepository attendanceRepository,
+                             ScheduleRepository scheduleRepository,
+                             ConsumptionEventPublisher consumptionEventPublisher) {
         this.attendanceRepository = attendanceRepository;
         this.scheduleRepository = scheduleRepository;
+        this.consumptionEventPublisher = consumptionEventPublisher;
     }
 
     @Transactional
@@ -62,7 +67,7 @@ public class AttendanceService {
             return existing.get();
         }
 
-        return attendanceRepository.createConsumption(
+        InMemoryAttendanceStore.ConsumptionData consumed = attendanceRepository.createConsumption(
                 command.tenantId(),
                 command.storeId(),
                 reservation.id(),
@@ -72,6 +77,8 @@ public class AttendanceService {
                 command.operatorUserId(),
                 OffsetDateTime.now()
         );
+        consumptionEventPublisher.publishConsumed(consumed);
+        return consumed;
     }
 
     public List<InMemoryAttendanceStore.ConsumptionData> listConsumptions(String tenantId, String storeId) {
@@ -88,8 +95,10 @@ public class AttendanceService {
         if (!existing.status().equals("CONSUMED")) {
             throw new IllegalArgumentException("当前状态不可冲正");
         }
-        return attendanceRepository.updateConsumptionStatus(
+        InMemoryAttendanceStore.ConsumptionData reversed = attendanceRepository.updateConsumptionStatus(
                 existing.id(), tenantId, storeId, "REVERSED", operatorUserId, OffsetDateTime.now());
+        consumptionEventPublisher.publishReversed(reversed);
+        return reversed;
     }
 
     @Transactional
