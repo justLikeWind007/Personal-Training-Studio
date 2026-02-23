@@ -1,0 +1,50 @@
+groups:
+  - name: ptstudio-gateway-alerts
+    rules:
+      - alert: PtstudioGatewayHigh5xxRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{application="ptstudio-cloud-gateway",status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(http_server_requests_seconds_count{application="ptstudio-cloud-gateway"}[5m])), 0.0001)
+          > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          service: ptstudio-cloud-gateway
+        annotations:
+          summary: "Gateway 5xx 比例过高"
+          description: "ptstudio-cloud-gateway 过去 5 分钟 5xx 比例超过 1%"
+
+      - alert: PtstudioGatewayHighP95Latency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_server_requests_seconds_bucket{application="ptstudio-cloud-gateway"}[5m])) by (le)
+          ) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: ptstudio-cloud-gateway
+        annotations:
+          summary: "Gateway P95 延迟过高"
+          description: "ptstudio-cloud-gateway 过去 5 分钟 P95 延迟超过 800ms"
+
+  - name: ptstudio-service-alerts
+    rules:
+      - alert: PtstudioServiceInstanceDown
+        expr: up{job=~"ptstudio-ops-service|ptstudio-biz-service|ptstudio-cloud-gateway"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "服务实例不可用"
+          description: "实例 {{ $labels.instance }} 连续 2 分钟不可用"
+
+      - alert: PtstudioJvmThreadSpike
+        expr: jvm_threads_live_threads{application=~"ptstudio-ops-service|ptstudio-biz-service|ptstudio-cloud-gateway"} > 400
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "JVM 线程数异常升高"
+          description: "实例 {{ $labels.instance }} 线程数超过 400"

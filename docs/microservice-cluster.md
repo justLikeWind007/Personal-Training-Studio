@@ -56,6 +56,7 @@ docker compose -f docker-compose.cluster.yml up -d
 
 集群说明文档：`docs/local-middleware-cluster.md`
 观测基线文档：`docs/生产观测与告警基线_v1.md`
+告警规则模板：`observability/prometheus-alert-rules.yml`
 
 ## 4. 高并发链路测试
 
