@@ -21,6 +21,18 @@ Services:
 ./scripts/middleware_smoke.sh
 ```
 
+## 2.1 ES review snapshot business smoke
+
+```bash
+./scripts/es_review_snapshot_smoke.sh
+```
+
+脚本会自动：
+- 拉起并验证中间件容器可用
+- 以 `mysql,redis,mq,es` profile 启动服务
+- 调用复盘快照与 latest 接口
+- 直接查询 ES 文档并校验归档结果
+
 ## 3. Outbox retry/dead-letter drill
 
 ```bash
@@ -81,3 +93,4 @@ SPRING_PROFILES_ACTIVE=mysql,redis,mq,es mvn -pl ptstudio-start spring-boot:run
 - 当启用 `es` profile 时，运营复盘快照会写入 ES 索引：
   - 索引：`ptstudio_ops_review_snapshot`
   - 接口：`GET /api/ops/review-dashboard/latest` 返回最近一次归档快照
+  - 可通过 `./scripts/es_review_snapshot_smoke.sh` 做端到端校验
