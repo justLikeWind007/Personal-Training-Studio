@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -18,6 +19,26 @@ public class MemberService {
 
     public List<InMemoryCrmStore.MemberData> list(String tenantId, String storeId) {
         return memberRepository.list(tenantId, storeId);
+    }
+
+    public List<InMemoryCrmStore.MemberData> list(String tenantId,
+                                                  String storeId,
+                                                  String status,
+                                                  String levelTag,
+                                                  String keyword) {
+        String normalizedStatus = normalize(status);
+        String normalizedLevelTag = normalize(levelTag);
+        String normalizedKeyword = normalize(keyword);
+        return memberRepository.list(tenantId, storeId).stream()
+                .filter(member -> normalizedStatus == null
+                        || member.status().equalsIgnoreCase(normalizedStatus))
+                .filter(member -> normalizedLevelTag == null
+                        || member.levelTag().equalsIgnoreCase(normalizedLevelTag))
+                .filter(member -> normalizedKeyword == null
+                        || containsIgnoreCase(member.memberNo(), normalizedKeyword)
+                        || containsIgnoreCase(member.name(), normalizedKeyword)
+                        || containsIgnoreCase(member.mobile(), normalizedKeyword))
+                .toList();
     }
 
     public Optional<InMemoryCrmStore.MemberData> get(Long id, String tenantId, String storeId) {
@@ -76,5 +97,19 @@ public class MemberService {
     }
 
     public record TimelineEvent(String type, String description, OffsetDateTime occurredAt) {
+    }
+
+    private String normalize(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private boolean containsIgnoreCase(String raw, String keyword) {
+        if (raw == null || keyword == null) {
+            return false;
+        }
+        return raw.toLowerCase(Locale.ROOT).contains(keyword.toLowerCase(Locale.ROOT));
     }
 }

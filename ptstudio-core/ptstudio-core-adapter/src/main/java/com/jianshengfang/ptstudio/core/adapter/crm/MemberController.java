@@ -14,7 +14,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
@@ -30,9 +34,35 @@ public class MemberController {
     }
 
     @GetMapping
-    public List<InMemoryCrmStore.MemberData> list() {
+    public List<InMemoryCrmStore.MemberData> list(
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "levelTag", required = false) String levelTag,
+            @RequestParam(name = "keyword", required = false) String keyword) {
         TenantStoreContext context = requireContext();
-        return memberService.list(context.tenantId(), context.storeId());
+        return memberService.list(context.tenantId(), context.storeId(), status, levelTag, keyword);
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<String> export(
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "levelTag", required = false) String levelTag,
+            @RequestParam(name = "keyword", required = false) String keyword) {
+        TenantStoreContext context = requireContext();
+        List<InMemoryCrmStore.MemberData> members = memberService.list(
+                context.tenantId(), context.storeId(), status, levelTag, keyword);
+        StringBuilder csv = new StringBuilder("memberNo,name,mobile,levelTag,status,joinDate\n");
+        for (InMemoryCrmStore.MemberData member : members) {
+            csv.append(member.memberNo()).append(",")
+                    .append(member.name()).append(",")
+                    .append(member.mobile()).append(",")
+                    .append(member.levelTag()).append(",")
+                    .append(member.status()).append(",")
+                    .append(member.joinDate()).append("\n");
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"members.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(csv.toString());
     }
 
     @PostMapping
@@ -49,7 +79,7 @@ public class MemberController {
     }
 
     @GetMapping("/{id}")
-    public InMemoryCrmStore.MemberData detail(@PathVariable Long id) {
+    public InMemoryCrmStore.MemberData detail(@PathVariable("id") Long id) {
         TenantStoreContext context = requireContext();
         return memberService.get(id, context.tenantId(), context.storeId())
                 .orElseThrow(() -> new IllegalArgumentException("会员不存在"));
@@ -57,7 +87,7 @@ public class MemberController {
 
     @PutMapping("/{id}")
     @AuditAction(module = "CRM_MEMBER", action = "UPDATE")
-    public InMemoryCrmStore.MemberData update(@PathVariable Long id,
+    public InMemoryCrmStore.MemberData update(@PathVariable("id") Long id,
                                                @Valid @RequestBody UpdateMemberRequest request) {
         TenantStoreContext context = requireContext();
         return memberService.update(id, new MemberService.UpdateMemberCommand(
@@ -71,7 +101,7 @@ public class MemberController {
     }
 
     @GetMapping("/{id}/timeline")
-    public List<MemberService.TimelineEvent> timeline(@PathVariable Long id) {
+    public List<MemberService.TimelineEvent> timeline(@PathVariable("id") Long id) {
         TenantStoreContext context = requireContext();
         return memberService.timeline(id, context.tenantId(), context.storeId());
     }
