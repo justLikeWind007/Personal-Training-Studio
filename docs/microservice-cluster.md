@@ -47,6 +47,12 @@
 ./scripts/observability_smoke.sh
 ```
 
+发布前检查：
+
+```bash
+./scripts/release_precheck.sh
+```
+
 中间件集群拓扑（开发/测试）：
 
 ```bash
@@ -57,6 +63,8 @@ docker compose -f docker-compose.cluster.yml up -d
 集群说明文档：`docs/local-middleware-cluster.md`
 观测基线文档：`docs/生产观测与告警基线_v1.md`
 告警规则模板：`observability/prometheus-alert-rules.yml`
+发布与回滚 runbook：`docs/发布灰度与回滚Runbook_v1.md`
+发布检查清单：`docs/发布检查清单_v1.md`
 
 ## 4. 高并发链路测试
 
