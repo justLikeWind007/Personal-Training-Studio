@@ -52,7 +52,7 @@ public class ReconcileCenterController {
 
     @PostMapping("/issues/{issueNo}/retry")
     @AuditAction(module = "RECONCILE", action = "ISSUE_RETRY")
-    public ReconcileCenterService.ReconcileIssue retry(@PathVariable String issueNo,
+    public ReconcileCenterService.ReconcileIssue retry(@PathVariable("issueNo") String issueNo,
                                                        @Valid @RequestBody IssueActionRequest request) {
         TenantStoreContext context = requireContext();
         return reconcileCenterService.retryIssue(context.tenantId(), context.storeId(), issueNo, request.operatorUserId());
@@ -60,7 +60,7 @@ public class ReconcileCenterController {
 
     @PostMapping("/issues/{issueNo}/close")
     @AuditAction(module = "RECONCILE", action = "ISSUE_CLOSE")
-    public ReconcileCenterService.ReconcileIssue close(@PathVariable String issueNo,
+    public ReconcileCenterService.ReconcileIssue close(@PathVariable("issueNo") String issueNo,
                                                        @Valid @RequestBody IssueActionRequest request) {
         TenantStoreContext context = requireContext();
         return reconcileCenterService.closeIssue(context.tenantId(), context.storeId(), issueNo, request.operatorUserId());
