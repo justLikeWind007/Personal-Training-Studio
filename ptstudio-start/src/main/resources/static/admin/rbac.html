@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>权限配置台</title>
+    <style>
+        :root {
+            --bg: #f4f6f8;
+            --card: #ffffff;
+            --text: #1f2a37;
+            --muted: #6b7280;
+            --line: #d2d6dc;
+            --brand: #0b6bcb;
+            --danger: #c5362e;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at 20% 0, #e8f2fb 0, var(--bg) 40%);
+        }
+        .container {
+            max-width: 1180px;
+            margin: 24px auto 40px;
+            padding: 0 16px;
+        }
+        h1 { margin: 0 0 6px; font-size: 28px; }
+        .desc { color: var(--muted); margin-bottom: 18px; }
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 6px 14px rgba(7, 32, 68, 0.05);
+        }
+        .panel h2 { margin: 0 0 12px; font-size: 20px; }
+        .row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .field { flex: 1 1 220px; }
+        label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+        input, select, textarea, button {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            background: #fff;
+        }
+        textarea { min-height: 112px; resize: vertical; }
+        .btn {
+            border: 0;
+            color: #fff;
+            background: var(--brand);
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn.secondary {
+            background: #4b5563;
+        }
+        .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            border: 1px solid transparent;
+            display: none;
+        }
+        .status.ok { display: block; background: #edf9f0; border-color: #9ed9af; color: #0f6130; }
+        .status.err { display: block; background: #fdeeee; border-color: #efb4b4; color: var(--danger); }
+        pre {
+            margin: 10px 0 0;
+            padding: 12px;
+            border-radius: 8px;
+            background: #0f172a;
+            color: #dbeafe;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            min-height: 88px;
+        }
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: 1fr; }
+            h1 { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>角色与按钮级权限配置台</h1>
+    <div class="desc">MVP v2 用于联调权限模型：角色配置、用户授权、权限快照核对。</div>
+
+    <div class="panel">
+        <h2>请求上下文</h2>
+        <div class="row">
+            <div class="field">
+                <label for="tenantId">X-Tenant-Id</label>
+                <input id="tenantId" value="tenant-demo">
+            </div>
+            <div class="field">
+                <label for="storeId">X-Store-Id</label>
+                <input id="storeId" value="store-001">
+            </div>
+            <div class="field">
+                <label for="token">Authorization Token（可选，不含 Bearer）</label>
+                <input id="token" placeholder="登录后 token">
+            </div>
+        </div>
+        <div class="hint">页面调用的是后端真实接口 `/api/rbac/*`，可直接作为管理页原型。</div>
+    </div>
+
+    <div class="grid">
+        <div class="panel">
+            <h2>角色权限配置</h2>
+            <div class="row">
+                <div class="field">
+                    <label for="roleSelect">角色</label>
+                    <select id="roleSelect"></select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="field">
+                    <label for="menuKeys">菜单权限（逗号分隔）</label>
+                    <textarea id="menuKeys"></textarea>
+                </div>
+                <div class="field">
+                    <label for="buttonKeys">按钮权限（逗号分隔）</label>
+                    <textarea id="buttonKeys"></textarea>
+                </div>
+            </div>
+            <div class="row">
+                <div class="field"><button class="btn secondary" id="btnLoadRole">读取角色权限</button></div>
+                <div class="field"><button class="btn" id="btnSaveRole">保存角色权限</button></div>
+            </div>
+            <div class="status" id="roleStatus"></div>
+            <pre id="catalogView">权限目录加载中...</pre>
+        </div>
+
+        <div class="panel">
+            <h2>用户授权与快照</h2>
+            <div class="row">
+                <div class="field">
+                    <label for="userId">用户ID</label>
+                    <input id="userId" value="3001">
+                </div>
+                <div class="field">
+                    <label for="roleAssign">分配角色（逗号分隔）</label>
+                    <input id="roleAssign" value="SALES,RECEPTION">
+                </div>
+            </div>
+            <div class="row">
+                <div class="field"><button class="btn secondary" id="btnAssign">提交用户角色</button></div>
+                <div class="field"><button class="btn" id="btnSnapshot">查询权限快照</button></div>
+            </div>
+            <div class="status" id="userStatus"></div>
+            <pre id="snapshotView">等待操作...</pre>
+        </div>
+    </div>
+</div>
+
+<script>
+    function headers() {
+        const tenantId = document.getElementById("tenantId").value.trim();
+        const storeId = document.getElementById("storeId").value.trim();
+        const token = document.getElementById("token").value.trim();
+        const result = {"Content-Type": "application/json"};
+        if (tenantId) result["X-Tenant-Id"] = tenantId;
+        if (storeId) result["X-Store-Id"] = storeId;
+        if (token) result["Authorization"] = "Bearer " + token;
+        return result;
+    }
+
+    function splitCsv(raw) {
+        if (!raw) return [];
+        return raw.split(",").map(s => s.trim()).filter(Boolean);
+    }
+
+    function showStatus(id, ok, message) {
+        const node = document.getElementById(id);
+        node.textContent = message;
+        node.className = ok ? "status ok" : "status err";
+    }
+
+    async function request(url, options = {}) {
+        const response = await fetch(url, {...options, headers: {...headers(), ...(options.headers || {})}});
+        const bodyText = await response.text();
+        let body;
+        try {
+            body = bodyText ? JSON.parse(bodyText) : {};
+        } catch (_ignored) {
+            body = bodyText;
+        }
+        if (!response.ok) {
+            throw new Error(typeof body === "string" ? body : JSON.stringify(body));
+        }
+        return body;
+    }
+
+    async function loadRoles() {
+        const roles = await request("/api/rbac/roles");
+        const select = document.getElementById("roleSelect");
+        select.innerHTML = "";
+        roles.forEach(role => {
+            const option = document.createElement("option");
+            option.value = role;
+            option.textContent = role;
+            select.appendChild(option);
+        });
+    }
+
+    async function loadCatalog() {
+        const catalog = await request("/api/rbac/permissions/catalog");
+        document.getElementById("catalogView").textContent = JSON.stringify(catalog, null, 2);
+    }
+
+    async function loadRolePermission() {
+        const roleKey = document.getElementById("roleSelect").value;
+        const result = await request("/api/rbac/roles/" + encodeURIComponent(roleKey) + "/permissions");
+        document.getElementById("menuKeys").value = (result.menuKeys || []).join(", ");
+        document.getElementById("buttonKeys").value = (result.buttonKeys || []).join(", ");
+        showStatus("roleStatus", true, "角色权限已加载：" + roleKey);
+    }
+
+    async function saveRolePermission() {
+        const roleKey = document.getElementById("roleSelect").value;
+        const payload = {
+            menuKeys: splitCsv(document.getElementById("menuKeys").value),
+            buttonKeys: splitCsv(document.getElementById("buttonKeys").value)
+        };
+        const result = await request("/api/rbac/roles/" + encodeURIComponent(roleKey) + "/permissions", {
+            method: "PUT",
+            body: JSON.stringify(payload)
+        });
+        showStatus("roleStatus", true, "角色权限已保存，版本将自动递增：" + roleKey);
+        document.getElementById("menuKeys").value = (result.menuKeys || []).join(", ");
+        document.getElementById("buttonKeys").value = (result.buttonKeys || []).join(", ");
+    }
+
+    async function assignRoles() {
+        const userId = document.getElementById("userId").value.trim();
+        const payload = {roles: splitCsv(document.getElementById("roleAssign").value)};
+        const result = await request("/api/rbac/users/" + encodeURIComponent(userId) + "/roles", {
+            method: "POST",
+            body: JSON.stringify(payload)
+        });
+        showStatus("userStatus", true, "用户角色已保存：" + JSON.stringify(result.roles));
+    }
+
+    async function loadSnapshot() {
+        const userId = document.getElementById("userId").value.trim();
+        const result = await request("/api/rbac/users/" + encodeURIComponent(userId) + "/permissions");
+        document.getElementById("snapshotView").textContent = JSON.stringify(result, null, 2);
+        showStatus("userStatus", true, "权限快照已加载，版本号：" + result.version);
+    }
+
+    async function boot() {
+        try {
+            await loadRoles();
+            await loadCatalog();
+            await loadRolePermission();
+            showStatus("roleStatus", true, "初始化完成");
+        } catch (e) {
+            showStatus("roleStatus", false, "初始化失败：" + e.message);
+            document.getElementById("catalogView").textContent = "请检查网关、租户头、门店头或 token。";
+        }
+    }
+
+    document.getElementById("btnLoadRole").addEventListener("click", () => loadRolePermission().catch(e => {
+        showStatus("roleStatus", false, e.message);
+    }));
+    document.getElementById("btnSaveRole").addEventListener("click", () => saveRolePermission().catch(e => {
+        showStatus("roleStatus", false, e.message);
+    }));
+    document.getElementById("btnAssign").addEventListener("click", () => assignRoles().catch(e => {
+        showStatus("userStatus", false, e.message);
+    }));
+    document.getElementById("btnSnapshot").addEventListener("click", () => loadSnapshot().catch(e => {
+        showStatus("userStatus", false, e.message);
+    }));
+    document.getElementById("roleSelect").addEventListener("change", () => loadRolePermission().catch(e => {
+        showStatus("roleStatus", false, e.message);
+    }));
+
+    boot();
+</script>
+</body>
+</html>
