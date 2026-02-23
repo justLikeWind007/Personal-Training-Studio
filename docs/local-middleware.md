@@ -93,4 +93,5 @@ SPRING_PROFILES_ACTIVE=mysql,redis,mq,es mvn -pl ptstudio-start spring-boot:run
 - 当启用 `es` profile 时，运营复盘快照会写入 ES 索引：
   - 索引：`ptstudio_ops_review_snapshot`
   - 接口：`GET /api/ops/review-dashboard/latest` 返回最近一次归档快照
+  - 索引初始化策略：不存在时自动创建 `strict` mapping（避免脏字段写入）
   - 可通过 `./scripts/es_review_snapshot_smoke.sh` 做端到端校验

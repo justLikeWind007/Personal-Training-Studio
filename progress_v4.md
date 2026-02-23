@@ -44,6 +44,7 @@
 - [x] 日期区间筛选
 - [x] 报表导出
 - [x] ES latest归档链路冒烟校验脚本
+- [x] ES 索引固定mapping与写入状态校验
 
 ## Functional Requirements 映射
 - [x] FR-1 策略驱动自动任务

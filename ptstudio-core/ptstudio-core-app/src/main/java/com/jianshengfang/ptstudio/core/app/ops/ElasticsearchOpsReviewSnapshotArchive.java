@@ -24,6 +24,33 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ElasticsearchOpsReviewSnapshotArchive implements OpsReviewSnapshotArchive {
 
     private static final String INDEX = "ptstudio_ops_review_snapshot";
+    private static final String INDEX_MAPPING = """
+            {
+              "settings": {
+                "number_of_shards": 1,
+                "number_of_replicas": 0
+              },
+              "mappings": {
+                "dynamic": "strict",
+                "properties": {
+                  "tenantId": { "type": "keyword" },
+                  "storeId": { "type": "keyword" },
+                  "dateFrom": { "type": "date" },
+                  "dateTo": { "type": "date" },
+                  "totalTasks": { "type": "integer" },
+                  "doneTasks": { "type": "integer" },
+                  "overdueTasks": { "type": "integer" },
+                  "touchCount": { "type": "integer" },
+                  "convertedCount": { "type": "integer" },
+                  "completionRate": { "type": "double" },
+                  "overdueRate": { "type": "double" },
+                  "conversionRate": { "type": "double" },
+                  "avgHandleHours": { "type": "double" },
+                  "generatedAt": { "type": "date" }
+                }
+              }
+            }
+            """;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -65,7 +92,10 @@ public class ElasticsearchOpsReviewSnapshotArchive implements OpsReviewSnapshotA
                     .header("Content-Type", "application/json")
                     .PUT(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
                     .build();
-            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (!isSuccess(response.statusCode())) {
+                return;
+            }
         } catch (Exception ignored) {
             // ES 不可用时降级，不影响主链路返回
         }
@@ -119,11 +149,25 @@ public class ElasticsearchOpsReviewSnapshotArchive implements OpsReviewSnapshotA
     private void ensureIndex() {
         if (indexChecked.compareAndSet(false, true)) {
             try {
+                HttpRequest check = HttpRequest.newBuilder(URI.create(esBaseUrl + "/" + INDEX))
+                        .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                        .build();
+                HttpResponse<String> checkResponse = httpClient.send(check, HttpResponse.BodyHandlers.ofString());
+                if (checkResponse.statusCode() == 200) {
+                    return;
+                }
+                if (checkResponse.statusCode() != 404) {
+                    return;
+                }
+
                 HttpRequest create = HttpRequest.newBuilder(URI.create(esBaseUrl + "/" + INDEX))
                         .header("Content-Type", "application/json")
-                        .PUT(HttpRequest.BodyPublishers.ofString("{\"mappings\":{\"dynamic\":true}}"))
+                        .PUT(HttpRequest.BodyPublishers.ofString(INDEX_MAPPING))
                         .build();
-                httpClient.send(create, HttpResponse.BodyHandlers.ofString());
+                HttpResponse<String> createResponse = httpClient.send(create, HttpResponse.BodyHandlers.ofString());
+                if (!(createResponse.statusCode() == 200 || createResponse.statusCode() == 201)) {
+                    return;
+                }
             } catch (Exception ignored) {
                 // ignore
             }
@@ -144,5 +188,9 @@ public class ElasticsearchOpsReviewSnapshotArchive implements OpsReviewSnapshotA
 
     private BigDecimal decimalValue(Object source) {
         return source == null ? BigDecimal.ZERO : new BigDecimal(String.valueOf(source));
+    }
+
+    private boolean isSuccess(int statusCode) {
+        return statusCode >= 200 && statusCode < 300;
     }
 }
