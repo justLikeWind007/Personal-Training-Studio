@@ -111,6 +111,37 @@ public class OperationTaskService {
         return new GenerateResult(rule, created.size(), created);
     }
 
+    @Transactional
+    public OperationTask createFromJourney(String tenantId,
+                                           String storeId,
+                                           String nodeType,
+                                           Long memberId,
+                                           String title,
+                                           String priority,
+                                           String ownerRole,
+                                           Long operatorUserId) {
+        String taskNo = "OT" + taskSeq.incrementAndGet();
+        OperationTask task = new OperationTask(
+                taskNo,
+                tenantId,
+                storeId,
+                nodeType,
+                priority,
+                ownerRole,
+                title,
+                "TODO",
+                memberId,
+                "JOURNEY_NODE",
+                "AUTO_CREATE",
+                operatorUserId,
+                operatorUserId,
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
+        putTask(task);
+        return task;
+    }
+
     public List<OperationTask> list(String tenantId, String storeId, String status) {
         return taskByNoByKey.getOrDefault(key(tenantId, storeId), Map.of()).values().stream()
                 .filter(task -> status == null || status.equals(task.status()))
