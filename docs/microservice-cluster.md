@@ -53,6 +53,12 @@
 ./scripts/release_precheck.sh
 ```
 
+企业级一键巡检：
+
+```bash
+./scripts/enterprise_readiness_check.sh
+```
+
 安全基线巡检：
 
 ```bash
