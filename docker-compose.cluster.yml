@@ -1,0 +1,204 @@
+version: "3.9"
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: ptstudio-cluster-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: nacos_config
+      MYSQL_USER: nacos
+      MYSQL_PASSWORD: nacos
+    ports:
+      - "13306:3306"
+    command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  nacos-1:
+    image: nacos/nacos-server:v2.4.3
+    container_name: ptstudio-nacos-1
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      MODE: cluster
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: nacos
+      MYSQL_SERVICE_PASSWORD: nacos
+      NACOS_AUTH_ENABLE: "false"
+      NACOS_SERVERS: nacos-1:8848 nacos-2:8848 nacos-3:8848
+    ports:
+      - "8848:8848"
+
+  nacos-2:
+    image: nacos/nacos-server:v2.4.3
+    container_name: ptstudio-nacos-2
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      MODE: cluster
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: nacos
+      MYSQL_SERVICE_PASSWORD: nacos
+      NACOS_AUTH_ENABLE: "false"
+      NACOS_SERVERS: nacos-1:8848 nacos-2:8848 nacos-3:8848
+    ports:
+      - "8849:8848"
+
+  nacos-3:
+    image: nacos/nacos-server:v2.4.3
+    container_name: ptstudio-nacos-3
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      MODE: cluster
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: nacos
+      MYSQL_SERVICE_PASSWORD: nacos
+      NACOS_AUTH_ENABLE: "false"
+      NACOS_SERVERS: nacos-1:8848 nacos-2:8848 nacos-3:8848
+    ports:
+      - "8850:8848"
+
+  redis-master:
+    image: redis:7.4
+    container_name: ptstudio-redis-master
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "16379:6379"
+
+  redis-replica-1:
+    image: redis:7.4
+    container_name: ptstudio-redis-replica-1
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--replicaof", "redis-master", "6379"]
+    ports:
+      - "16380:6379"
+
+  redis-replica-2:
+    image: redis:7.4
+    container_name: ptstudio-redis-replica-2
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--replicaof", "redis-master", "6379"]
+    ports:
+      - "16381:6379"
+
+  redis-sentinel-1:
+    image: redis:7.4
+    container_name: ptstudio-redis-sentinel-1
+    restart: unless-stopped
+    command: >
+      sh -c "printf 'port 26379\nsentinel monitor mymaster redis-master 6379 2\nsentinel down-after-milliseconds mymaster 5000\nsentinel failover-timeout mymaster 10000\nsentinel parallel-syncs mymaster 1\n' > /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    ports:
+      - "26379:26379"
+
+  redis-sentinel-2:
+    image: redis:7.4
+    container_name: ptstudio-redis-sentinel-2
+    restart: unless-stopped
+    command: >
+      sh -c "printf 'port 26379\nsentinel monitor mymaster redis-master 6379 2\nsentinel down-after-milliseconds mymaster 5000\nsentinel failover-timeout mymaster 10000\nsentinel parallel-syncs mymaster 1\n' > /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    ports:
+      - "26380:26379"
+
+  redis-sentinel-3:
+    image: redis:7.4
+    container_name: ptstudio-redis-sentinel-3
+    restart: unless-stopped
+    command: >
+      sh -c "printf 'port 26379\nsentinel monitor mymaster redis-master 6379 2\nsentinel down-after-milliseconds mymaster 5000\nsentinel failover-timeout mymaster 10000\nsentinel parallel-syncs mymaster 1\n' > /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    ports:
+      - "26381:26379"
+
+  rocketmq-namesrv-1:
+    image: apache/rocketmq:5.3.3
+    container_name: ptstudio-rocketmq-namesrv-1
+    restart: unless-stopped
+    command: sh mqnamesrv
+    ports:
+      - "19876:9876"
+
+  rocketmq-namesrv-2:
+    image: apache/rocketmq:5.3.3
+    container_name: ptstudio-rocketmq-namesrv-2
+    restart: unless-stopped
+    command: sh mqnamesrv
+    ports:
+      - "29876:9876"
+
+  rocketmq-broker-master:
+    image: apache/rocketmq:5.3.3
+    container_name: ptstudio-rocketmq-broker-master
+    restart: unless-stopped
+    depends_on:
+      - rocketmq-namesrv-1
+      - rocketmq-namesrv-2
+    command: ["sh", "mqbroker", "-n", "rocketmq-namesrv-1:9876;rocketmq-namesrv-2:9876", "--enable-proxy"]
+    ports:
+      - "20911:10911"
+      - "20909:10909"
+
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: ptstudio-es01
+    restart: unless-stopped
+    environment:
+      - node.name=es01
+      - cluster.name=ptstudio-es-cluster
+      - discovery.seed_hosts=es01,es02,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "19200:9200"
+
+  es02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: ptstudio-es02
+    restart: unless-stopped
+    environment:
+      - node.name=es02
+      - cluster.name=ptstudio-es-cluster
+      - discovery.seed_hosts=es01,es02,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+
+  es03:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: ptstudio-es03
+    restart: unless-stopped
+    environment:
+      - node.name=es03
+      - cluster.name=ptstudio-es-cluster
+      - discovery.seed_hosts=es01,es02,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    container_name: ptstudio-cluster-kibana
+    restart: unless-stopped
+    depends_on:
+      - es01
+    environment:
+      ELASTICSEARCH_HOSTS: http://es01:9200
+    ports:
+      - "15601:5601"

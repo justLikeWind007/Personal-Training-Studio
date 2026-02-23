@@ -41,6 +41,15 @@
 ./scripts/microservice_cluster_smoke.sh
 ```
 
+中间件集群拓扑（开发/测试）：
+
+```bash
+docker compose -f docker-compose.cluster.yml up -d
+./scripts/middleware_cluster_smoke.sh
+```
+
+集群说明文档：`docs/local-middleware-cluster.md`
+
 ## 4. 高并发链路测试
 
 测试链路：`Gateway -> Ops Service -> Async Queue`
