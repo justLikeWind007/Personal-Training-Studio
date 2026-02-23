@@ -18,11 +18,11 @@ v5.0 聚焦“架构可扩展”：从单体演进到可横向扩展的微服务
 
 ## 3. User Stories
 
-### US-301 微服务基础设施
+### US-301 微服务基础设施（Spring Cloud Alibaba）
 **Description:** 作为平台工程师，我希望系统具备标准微服务基础设施，支持服务注册与网关路由。  
 
 **Acceptance Criteria:**
-- [ ] 提供注册中心服务（Eureka）
+- [ ] 提供注册中心服务（Nacos）
 - [ ] 提供 API 网关服务（Gateway）
 - [ ] 网关支持按路径将流量转发到不同业务服务
 - [ ] 提供基础健康检查能力
@@ -71,7 +71,7 @@ v5.0 聚焦“架构可扩展”：从单体演进到可横向扩展的微服务
 
 ## 6. 技术约束与考虑
 
-- 延续 Spring Boot + Spring Cloud 技术栈
+- 延续 Spring Boot + Spring Cloud Alibaba 技术栈（Nacos 注册发现）
 - 保持原 `ptstudio-start` 兼容，微服务改造采用增量式并存策略
 - 高并发测试先采用轻量脚本化方案，后续可接入 JMeter/k6
 

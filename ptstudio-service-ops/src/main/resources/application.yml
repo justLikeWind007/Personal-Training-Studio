@@ -3,14 +3,13 @@ spring:
     name: ptstudio-ops-service
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:test}
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
 
 server:
   port: ${SERVER_PORT:8082}
-
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_SERVER_URL:http://127.0.0.1:8761/eureka/}
 
 management:
   endpoints:

@@ -91,7 +91,20 @@ services:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
     ports:
       - "5601:5601"
+  nacos:
+    image: nacos/nacos-server:v2.4.3
+    container_name: ptstudio-nacos
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: embedded
+      NACOS_AUTH_ENABLE: "false"
+    ports:
+      - "8848:8848"
+    volumes:
+      - ptstudio_nacos_data:/home/nacos/data
 volumes:
   ptstudio_mysql_data:
   ptstudio_redis_data:
   ptstudio_es_data:
+  ptstudio_nacos_data:

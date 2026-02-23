@@ -3,7 +3,7 @@
 ## 1. Start middleware stack
 
 ```bash
-docker compose up -d mysql redis rocketmq-namesrv rocketmq-broker rocketmq-dashboard elasticsearch kibana
+docker compose up -d mysql redis rocketmq-namesrv rocketmq-broker rocketmq-dashboard elasticsearch kibana nacos
 ```
 
 Services:
@@ -14,6 +14,7 @@ Services:
 - RocketMQ Dashboard: `http://127.0.0.1:8088`
 - Elasticsearch: `http://127.0.0.1:9200`
 - Kibana: `http://127.0.0.1:5601`
+- Nacos: `http://127.0.0.1:8848/nacos`
 
 ## 2. Middleware smoke check
 
@@ -80,6 +81,8 @@ SPRING_PROFILES_ACTIVE=mysql,redis,mq,es mvn -pl ptstudio-start spring-boot:run
   - `ES_HOST` (default `127.0.0.1`)
   - `ES_PORT` (default `9200`)
   - `ES_SCHEME` (default `http`)
+- Spring Cloud Alibaba:
+  - `NACOS_SERVER_ADDR` (default `127.0.0.1:8848`)
 
 ## 6. Notes
 

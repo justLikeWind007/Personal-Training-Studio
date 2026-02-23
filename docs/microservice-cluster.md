@@ -3,7 +3,7 @@
 ## 1. 拆分目标
 
 在保留原 `ptstudio-start` 单体启动能力的前提下，新增可并行演进的微服务集群：
-- 服务注册中心：`ptstudio-cloud-registry`
+- 服务注册中心：`Nacos`（Spring Cloud Alibaba）
 - API 网关：`ptstudio-cloud-gateway`
 - 业务服务：`ptstudio-biz-service`
 - 运营服务：`ptstudio-ops-service`
@@ -22,6 +22,8 @@
 ```bash
 ./scripts/microservice_cluster_up.sh
 ```
+
+脚本会自动拉起 `docker compose` 的 `nacos` 容器并等待健康检查。
 
 停止：
 
@@ -53,4 +55,4 @@ python3 scripts/perf_gateway_concurrency.py
 ## 5. 当前约束
 
 - 受当前环境网络策略限制，无法在线拉取新的 Maven 依赖并做完整编译。
-- 代码已按 Spring Cloud 标准结构完成改造，建议在可访问 Maven 仓库的环境执行完整构建与压测。
+- 代码已按 Spring Cloud Alibaba 标准结构完成改造，建议在可访问 Maven 仓库的环境执行完整构建与压测。

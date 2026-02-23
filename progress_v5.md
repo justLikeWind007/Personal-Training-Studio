@@ -14,7 +14,7 @@
 ## User Stories 映射
 
 ### US-301 微服务基础设施
-- [x] Eureka 注册中心
+- [x] Nacos 注册中心
 - [x] Gateway 网关
 - [x] 路由规则配置
 - [x] 健康检查端点

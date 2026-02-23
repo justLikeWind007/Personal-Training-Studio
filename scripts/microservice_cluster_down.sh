@@ -28,6 +28,6 @@ stop_one() {
 stop_one gateway
 stop_one ops-service
 stop_one biz-service
-stop_one registry
+docker compose stop nacos >/dev/null 2>&1 || true
 
 echo "cluster down"
