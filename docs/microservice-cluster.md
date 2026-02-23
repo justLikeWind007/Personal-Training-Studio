@@ -99,6 +99,17 @@ RocketMQ 演练脚本：`scripts/failover_drill_rocketmq_namesrv.sh`
 python3 scripts/perf_gateway_concurrency.py
 ```
 
+生成压测文字报告（可归档）：
+
+```bash
+python3 scripts/perf_chain_text_report.py \
+  --baseline /tmp/ptstudio-perf/gateway_baseline.json \
+  --limited /tmp/ptstudio-perf/gateway_limited.json \
+  --output docs/链路高并发压测报告_v1.md \
+  --env local-cluster \
+  --operator your-name
+```
+
 输出指标：
 - 总请求数、并发度
 - 成功/限流/失败数
@@ -106,6 +117,7 @@ python3 scripts/perf_gateway_concurrency.py
 - 吞吐（RPS）
 - 队列消费闭环结果
 - 报告脚本输出 `gateway_compare_report.md`
+- 文字报告输出 `docs/链路高并发压测报告_v1.md`
 
 ## 5. 当前约束
 
