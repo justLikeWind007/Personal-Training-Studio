@@ -3,7 +3,7 @@
 ## 1. Start middleware stack
 
 ```bash
-docker compose up -d mysql redis rocketmq-namesrv rocketmq-broker rocketmq-dashboard
+docker compose up -d mysql redis rocketmq-namesrv rocketmq-broker rocketmq-dashboard elasticsearch kibana
 ```
 
 Services:
@@ -12,6 +12,8 @@ Services:
 - RocketMQ NameServer: `127.0.0.1:9876`
 - RocketMQ Broker: `127.0.0.1:10911`
 - RocketMQ Dashboard: `http://127.0.0.1:8088`
+- Elasticsearch: `http://127.0.0.1:9200`
+- Kibana: `http://127.0.0.1:5601`
 
 ## 2. Middleware smoke check
 
@@ -62,8 +64,13 @@ SPRING_PROFILES_ACTIVE=mysql,redis,mq mvn -pl ptstudio-start spring-boot:run
   - `PT_OUTBOX_MAX_RETRY` (default `5`)
   - `PT_OUTBOX_RETRY_DELAY_SECONDS` (default `30`)
   - `PT_OUTBOX_FAIL_TAGS` (default empty)
+- ES:
+  - `ES_HOST` (default `127.0.0.1`)
+  - `ES_PORT` (default `9200`)
+  - `ES_SCHEME` (default `http`)
 
 ## 6. Notes
 
 - 当前代码中 `mq+mysql` 已用于预约事件 outbox 入库，不依赖 RocketMQ SDK 即可运行。
 - RocketMQ 容器用于 v2 异步投递链路联调与后续演进。
+- ES/Kibana 已纳入本地中间件栈，便于后续运营看板检索与日志分析扩展。
