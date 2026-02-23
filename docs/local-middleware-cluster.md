@@ -26,6 +26,12 @@ docker compose -f docker-compose.cluster.yml up -d
 ./scripts/failover_drill_redis_sentinel.sh
 ```
 
+## 2.2 Elasticsearch 单节点故障演练
+
+```bash
+./scripts/failover_drill_es_cluster.sh
+```
+
 ## 3. 适用场景
 
 - 验证 Spring Cloud Alibaba 服务注册在 Nacos 集群下的可用性
